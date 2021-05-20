@@ -131,8 +131,8 @@ def test_video(path=0):
             x = 0
         else:
             x = w/2 - list_coor[0][0] + list_coor[0][2]//2
-        if theta(x, 640, 0.5) != 90.0:
-            print(theta(x, 640, 0.5))
+        if theta(x, 640, 0.5) != 0.0:
+            print(theta(x, 640, 1/3))
         cv2.imshow("result", output_img)
         fps.update()
         if cv2.waitKey(1) == 27:
