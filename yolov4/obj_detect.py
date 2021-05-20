@@ -1,11 +1,14 @@
 import os
 import time
 from typing import Any
+from ultis.utils.measuring import theta
 
 import cv2
 import numpy as np
 from imutils.video import FPS
 from videoAccelerate import *
+from ultis import *
+
 
 class Yolov4:
     def __init__(self, net_path, config, label) -> None:
@@ -18,7 +21,7 @@ class Yolov4:
         self.old_conf = []
         self.net = self.create_net(self.config, self.net_path)
 
-    def detector(self, image, confidence_threshold, nms_threshold, delay=0) -> Any:
+    def detector(self, image, confidence_threshold, nms_threshold) -> Any:
 
         h, w, _ = image.shape
         layer_names = self.net.getLayerNames()
@@ -31,13 +34,12 @@ class Yolov4:
         self.net.setInput(blob)
         layer_outputs = self.net.forward(output_layers)
 
-
         # class_names = []
         # with open(self.label, "r") as f:
         #     class_names = [line.strip() for line in f.readlines()]
 
         class_names = ["Fire"]
-        colors = [0, 255, 255]
+        colors = [[0, 255, 255]]
 
         boxes = []
         confidences = []
@@ -74,10 +76,16 @@ class Yolov4:
                 tag = f"{class_names[class_ids[i]]}:{int(confidences[i]*100)}%"
                 color = colors[class_ids[i]]
 
-                cv2.rectangle(image, (x, y), (x + w, y + h), color, thickness=2)
+                cv2.rectangle(image, (x, y), (x + w, y + h),
+                              color, thickness=2)
                 cv2.putText(image, tag, (x, y - 5), font, 0.6,
                             color, 1, lineType=cv2.LINE_AA)
+                cv2.circle(image, (x + w//2, y + h//2), radius=0,
+                           color=(0, 0, 255), thickness=3)
+
                 list_coor.append([x, y, w, h])
+        cv2.circle(image, (image.shape[1]//2, image.shape[0]//2), radius=0,
+                   color=(0, 0, 255), thickness=3)
 
         return image, list_coor
 
@@ -87,8 +95,6 @@ class Yolov4:
         net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
         print("[INFO] Done reading net!")
         return net
-
-
 
 
 # test image
@@ -107,15 +113,26 @@ def test_image(path):
 
 
 def test_video(path=0):
+
     # test video
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(path)
     fps = FPS().start()
 
     delay = 0
     while cap.isOpened():
         _, frame = cap.read()
         h, w, _ = frame.shape
-        output_img,_ = myYolo.detector(frame, 0.2, 0.3, delay)
+        # print(h, w)
+        # tx = w/1080
+        output_img, list_coor = myYolo.detector(frame, 0.4, 0.6)
+        # print(output_img.shape)
+        # print(list_coor)
+        if len(list_coor) == 0:
+            x = 0
+        else:
+            x = w/2 - list_coor[0][0] + list_coor[0][2]//2
+        if theta(x, 640, 0.5) != 90.0:
+            print(theta(x, 640, 0.5))
         cv2.imshow("result", output_img)
         fps.update()
         if cv2.waitKey(1) == 27:
@@ -126,6 +143,7 @@ def test_video(path=0):
     print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
     cap.release()
     cv2.destroyAllWindows()
+
 
 def test_video_thread(source=0):
     video_getter = VideoGet(source).start()
@@ -140,7 +158,7 @@ def test_video_thread(source=0):
                 break
 
             frame = video_getter.frame
-            output_img= myYolo.detector(frame, 0.3, 0.5, delay)
+            output_img = myYolo.detector(frame, 0.3, 0.5, delay)
             video_shower.frame = output_img
             fps.update()
         fps.stop()
@@ -155,7 +173,6 @@ if __name__ == "__main__":
     label = r"backup/obj.names"
     config = r"yolov4-tiny-custom.cfg"
     net_path = r"yolov4-tiny-custom_best.weights"
-
 
     print("[INFO] Loading net...")
     t = time.time()
