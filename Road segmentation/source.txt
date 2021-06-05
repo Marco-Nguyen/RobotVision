@@ -1,0 +1,8 @@
+Liên quan đến project
+https://github.com/filippogiruzzi/semantic_segmentation
+https://github.com/sigmaai/semantic-segmentation
+https://github.com/udacity/CarND-Semantic-Segmentation
+https://github.com/GeorgeSeif/Semantic-Segmentation-Suite
+https://github.com/MarvinTeichmann/KittiSeg
+Các model semantic segmentation
+https://github.com/mrgloom/awesome-semantic-segmentation
