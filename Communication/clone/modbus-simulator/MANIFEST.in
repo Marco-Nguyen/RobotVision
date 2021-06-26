@@ -1,5 +1,0 @@
-include requirements
-include README.md
-include modbus_simulator/assets/*.png
-include modbus_simulator/assets/*.ico
-include modbus_simulator/templates/*.kv

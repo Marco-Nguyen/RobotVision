@@ -12,7 +12,7 @@ class SerialConfig():
         try:
             self.terminal = serial.Serial(self.com, baudrate=9600)
         except Exception as msg:
-            print('[ERROR]',msg)
+            print('[ERROR]', msg)
             try:
                 print("[W] Serial have been opened in another app, try to restart...")
                 self.terminal.close()
@@ -73,8 +73,9 @@ class SerialConfig():
     def send_data(self, data):
         '''send signal to arduino'''
         if self.available:
-            print("[I] Sent: " + data)
+            print("[I] Sent: ", end=' ')
             data = bytearray(data, 'utf-8')
+            print(data)
             self.terminal.write(data)
             return True
         else:
