@@ -11,7 +11,7 @@ else:
     from builtins import int
     from future.moves import tkinter
     import tkinter.messagebox as messagebox
-from easymodbus.modbusClient import *
+from easymodbus.modbusClient import ModbusClient
 
 
 class EasyModbusGUI(Frame):
@@ -256,39 +256,47 @@ class EasyModbusGUI(Frame):
     def __writeValuesToPLC(self):
         try:
             modbusClient = ModbusClient(f'COM{int(self.portEntry.get())}')
-            if (not modbusClient.is_connected()):
-                modbusClient.connect()
-            numberOfLines = (int(self.requestTextField.index('end').split('.')[0]) - 2)
-            if (self.variableDatatype.get() == 'Coils (bool)'):
-                if (numberOfLines > 1):
-                    valueToWrite = list()
-                    for i in range(1, numberOfLines + 1):
-                        textFieltValues = str(self.requestTextField.get(str(i) + ".0", str(i + 1) + ".0")[:-1])
-                        if "TRUE" in textFieltValues:  # String comparison contains some ""Null" symbol
-                            valueToWrite.append(1)
-                        else:
-                            valueToWrite.append(0)
-                    modbusClient.write_multiple_coils(int(self.startingAddressWrite.get()) - 1, valueToWrite)
-                else:
-                    textFieltValues = str(self.requestTextField.get('1.0', END)[:-1])
-                    if "TRUE" in textFieltValues:  # String comparison contains some ""Null" symbol
-                        dataToSend = 1
-                    else:
-                        dataToSend = 0
-                    modbusClient.write_single_coil(int(self.startingAddressWrite.get()) - 1, dataToSend)
-            else:
-                if (numberOfLines > 1):
-                    valueToWrite = list()
-                    for i in range(1, numberOfLines + 1):
-                        textFieltValues = int(self.requestTextField.get(str(i) + ".0", str(i + 1) + ".0")[:-1])
-                        valueToWrite.append(textFieltValues)
-                    modbusClient.write_multiple_registers(int(self.startingAddressWrite.get()) - 1, valueToWrite)
-                else:
-                    textFieltValues = int(self.requestTextField.get('1.0', END)[:-1])
-                    modbusClient.write_single_register(int(self.startingAddressWrite.get()) - 1, textFieltValues)
+            is_open = True
         except Exception as e:
             messagebox.showerror('Exception writing values to Server', str(e))
-        modbusClient.close()
+            modbusClient.close()
+        if is_open:
+            try:
+                modbusClient = ModbusClient(f'COM{int(self.portEntry.get())}')
+                if (not modbusClient.is_connected()):
+                    modbusClient.connect()
+                numberOfLines = int(self.requestTextField.index('end').split('.')[0]) - 2
+                print(numberOfLines)
+                if (self.variableDatatype.get() == 'Coils (bool)'):
+                    if (numberOfLines > 1):
+                        valueToWrite = list()
+                        for i in range(1, numberOfLines + 1):
+                            textFieltValues = str(self.requestTextField.get(str(i) + ".0", str(i + 1) + ".0")[:-1])
+                            if "TRUE" in textFieltValues:  # String comparison contains some ""Null" symbol
+                                valueToWrite.append(1)
+                            else:
+                                valueToWrite.append(0)
+                        modbusClient.write_multiple_coils(int(self.startingAddressWrite.get()) - 1, valueToWrite)
+                    else:
+                        textFieltValues = str(self.requestTextField.get('1.0', END)[:-1])
+                        if "TRUE" in textFieltValues:  # String comparison contains some ""Null" symbol
+                            dataToSend = 1
+                        else:
+                            dataToSend = 0
+                        modbusClient.write_single_coil(int(self.startingAddressWrite.get()) - 1, dataToSend)
+                else:
+                    if (numberOfLines > 1):
+                        valueToWrite = list()
+                        for i in range(1, numberOfLines + 1):
+                            textFieltValues = int(self.requestTextField.get(str(i) + ".0", str(i + 1) + ".0")[:-1])
+                            valueToWrite.append(textFieltValues)
+                        modbusClient.write_multiple_registers(int(self.startingAddressWrite.get()) - 1, valueToWrite)
+                    else:
+                        textFieltValues = int(self.requestTextField.get('1.0', END)[:-1])
+                        modbusClient.write_single_register(int(self.startingAddressWrite.get()) - 1, textFieltValues)
+            except Exception as e:
+                messagebox.showerror('Exception writing values to Server', str(e))
+            modbusClient.close()
 
     def deleteValueToRequestList(self):
         # numberOfLines = (int(self.requestTextField.index('end').split('.')[0]) - 2)
