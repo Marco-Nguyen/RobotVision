@@ -2,9 +2,11 @@
 
 import sys
 
-if sys.version_info[0] < 3:  # The Module "Tkinter" is named "tkinter" in Python 3.
+# The Module "Tkinter" is named "tkinter" in Python 3.
+if sys.version_info[0] < 3:
     from Tkinter import *
-    import tkMessageBox as messagebox  # We import tkMessageBos as messagebox, because thats the name in Python 3
+    # We import tkMessageBos as messagebox, because thats the name in Python 3
+    import tkMessageBox as messagebox
 
 else:
     import tkinter as tk
@@ -36,20 +38,27 @@ class EasyModbusGUI(Frame):
         readOperationsLabel.grid(row=0, column=0)
 
         # Button Read Coils
-        self.readCoils = Button(self, text="Read Coils (FC1)", width=25, command=self.__ReadCoils)
+        self.readCoils = Button(
+            self, text="Read Coils (FC1)", width=25, command=self.__ReadCoils)
         self.readCoils.grid(row=4, column=0, padx=20, pady=6, columnspan=2)
 
         # Button Read Discrete Inputs
-        self.readDiscreteInputs = Button(self, text="Read Discrete Inputs (FC2)", width=25, command=self.__ReadDiscreteInputs)
-        self.readDiscreteInputs.grid(row=5, column=0, padx=20, pady=6, columnspan=2)
+        self.readDiscreteInputs = Button(
+            self, text="Read Discrete Inputs (FC2)", width=25, command=self.__ReadDiscreteInputs)
+        self.readDiscreteInputs.grid(
+            row=5, column=0, padx=20, pady=6, columnspan=2)
 
         # Button Read Holding Registers
-        self.readHoldingRegisters = Button(self, text="Read Holding Registers (FC3)", width=25, command=self.__ReadHoldingRegisters)
-        self.readHoldingRegisters.grid(row=6, column=0, padx=20, pady=6, columnspan=2)
+        self.readHoldingRegisters = Button(
+            self, text="Read Holding Registers (FC3)", width=25, command=self.__ReadHoldingRegisters)
+        self.readHoldingRegisters.grid(
+            row=6, column=0, padx=20, pady=6, columnspan=2)
 
         # Button Read Input Registers
-        self.readInputRegisters = Button(self, text="Read Input Registers (FC4)", width=25, command=self.__ReadInputRegisters)
-        self.readInputRegisters.grid(row=7, column=0, padx=20, pady=6, columnspan=2)
+        self.readInputRegisters = Button(
+            self, text="Read Input Registers (FC4)", width=25, command=self.__ReadInputRegisters)
+        self.readInputRegisters.grid(
+            row=7, column=0, padx=20, pady=6, columnspan=2)
 
         # label for COM
         labelPort = Label(self, text="COM:")
@@ -92,7 +101,8 @@ class EasyModbusGUI(Frame):
         scroll.grid(row=3, column=6, rowspan=5, sticky=N + S + E)
 
         # resonse delete field
-        self.removeValueFromResponse = Button(self, text="Erase Value from \n response list", width=15, command=self.deleteValueFromResponseList)
+        self.removeValueFromResponse = Button(
+            self, text="Erase Value from \n response list", width=15, command=self.deleteValueFromResponseList)
         self.removeValueFromResponse.grid(row=10, column=3, columnspan=2)
 
         # Writing red
@@ -154,16 +164,20 @@ class EasyModbusGUI(Frame):
         scroll.grid(row=25, column=6, rowspan=8, sticky=N + S + E)
 
         # Button Add Entry to request list
-        self.addEntryToRequestList = Button(self, text="Add Value to \n request list", width=15, command=self.addValueToRequestList)
+        self.addEntryToRequestList = Button(
+            self, text="Add Value to \n request list", width=15, command=self.addValueToRequestList)
         self.addEntryToRequestList.grid(row=26, column=3, columnspan=2)
 
         # Button Delete Entry from request list
-        self.addEntryToRequestList = Button(self, text="Delete Value from \n request list", width=15, command=self.deleteValueToRequestList)
+        self.addEntryToRequestList = Button(
+            self, text="Delete Value from \n request list", width=15, command=self.deleteValueToRequestList)
         self.addEntryToRequestList.grid(row=27, column=3, columnspan=2)
 
         # Button Write values to server
-        writeValuesToServerButton = Button(self, text="Write Requested Values to PLC", width=25, command=self.__writeValuesToPLC)
-        writeValuesToServerButton.grid(row=30, column=0, padx=20, pady=6, columnspan=2)
+        writeValuesToServerButton = Button(
+            self, text="Write Requested Values to PLC", width=25, command=self.__writeValuesToPLC)
+        writeValuesToServerButton.grid(
+            row=30, column=0, padx=20, pady=6, columnspan=2)
 
     def addValueToRequestList(self):
         if (self.variableDatatype.get() == 'Coils (bool)'):
@@ -190,7 +204,8 @@ class EasyModbusGUI(Frame):
             myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
             if (not myClient.is_connected()):
                 myClient.connect()
-            coils = myClient.read_coils(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
+            coils = myClient.read_coils(
+                int(self.startingAddress.get()) - 1, int(self.quantity.get()))
             self.responseTextField.delete('1.0', END)
             for coil in coils:
                 if (coil == FALSE):
@@ -209,7 +224,8 @@ class EasyModbusGUI(Frame):
             myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
             if (not myClient.is_connected()):
                 myClient.connect()
-            discrInputs = myClient.read_discreteinputs(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
+            discrInputs = myClient.read_discreteinputs(
+                int(self.startingAddress.get()) - 1, int(self.quantity.get()))
             self.responseTextField.delete('1.0', END)
             for inp in discrInputs:
                 if (inp == FALSE):
@@ -219,7 +235,8 @@ class EasyModbusGUI(Frame):
 
                 self.responseTextField.insert(END, response + "\n")
         except Exception as e:
-            messagebox.showerror('Exception Reading discrete inputs from Server', str(e))
+            messagebox.showerror(
+                'Exception Reading discrete inputs from Server', str(e))
         finally:
             myClient.close()
 
@@ -228,13 +245,15 @@ class EasyModbusGUI(Frame):
             myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
             if (not myClient.is_connected()):
                 myClient.connect()
-            holdingRegisters = myClient.read_holdingregisters(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
+            holdingRegisters = myClient.read_holdingregisters(
+                int(self.startingAddress.get()) - 1, int(self.quantity.get()))
             self.responseTextField.delete('1.0', END)
             for register in holdingRegisters:
 
                 self.responseTextField.insert(END, str(register) + "\n")
         except Exception as e:
-            messagebox.showerror('Exception Reading holding registers from Server', str(e))
+            messagebox.showerror(
+                'Exception Reading holding registers from Server', str(e))
 
         finally:
             myClient.close()
@@ -244,7 +263,8 @@ class EasyModbusGUI(Frame):
             myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
             if (not myClient.is_connected()):
                 myClient.connect()
-            inputRegisters = myClient.read_inputregisters(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
+            inputRegisters = myClient.read_inputregisters(
+                int(self.startingAddress.get()) - 1, int(self.quantity.get()))
             self.responseTextField.delete('1.0', END)
             for register in inputRegisters:
 
@@ -252,7 +272,8 @@ class EasyModbusGUI(Frame):
 
             myClient.close()
         except Exception as e:
-            messagebox.showerror('Exception Reading input Registers from Server', str(e))
+            messagebox.showerror(
+                'Exception Reading input Registers from Server', str(e))
 
     def __writeValuesToPLC(self):
         try:
@@ -260,43 +281,53 @@ class EasyModbusGUI(Frame):
             is_open = True
         except Exception as e:
             messagebox.showerror('Exception writing values to Server', str(e))
-            myClient.close()
+            # myClient.close()
         if is_open:
             try:
                 myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
                 if (not myClient.is_connected()):
                     myClient.connect()
-                numberOfLines = int(self.requestTextField.index('end').split('.')[0]) - 2
+                numberOfLines = int(
+                    self.requestTextField.index('end').split('.')[0]) - 2
                 print(numberOfLines)
                 if (self.variableDatatype.get() == 'Coils (bool)'):
                     if (numberOfLines > 1):
                         valueToWrite = list()
                         for i in range(1, numberOfLines + 1):
-                            textFieltValues = str(self.requestTextField.get(str(i) + ".0", str(i + 1) + ".0")[:-1])
+                            textFieltValues = str(self.requestTextField.get(
+                                str(i) + ".0", str(i + 1) + ".0")[:-1])
                             if "TRUE" in textFieltValues:  # String comparison contains some ""Null" symbol
                                 valueToWrite.append(1)
                             else:
                                 valueToWrite.append(0)
-                        myClient.write_multiple_coils_custom(int(self.startingAddressWrite.get()) - 1, valueToWrite)
+                        myClient.write_multiple_coils_custom(
+                            int(self.startingAddressWrite.get()) - 1, valueToWrite)
                     else:
-                        textFieltValues = str(self.requestTextField.get('1.0', END)[:-1])
+                        textFieltValues = str(
+                            self.requestTextField.get('1.0', END)[:-1])
                         if "TRUE" in textFieltValues:  # String comparison contains some ""Null" symbol
                             dataToSend = 1
                         else:
                             dataToSend = 0
-                        myClient.write_single_coil(int(self.startingAddressWrite.get()) - 1, dataToSend)
+                        myClient.write_single_coil(
+                            int(self.startingAddressWrite.get()) - 1, dataToSend)
                 else:
                     if (numberOfLines > 1):
                         valueToWrite = list()
                         for i in range(1, numberOfLines + 1):
-                            textFieltValues = int(self.requestTextField.get(str(i) + ".0", str(i + 1) + ".0")[:-1])
+                            textFieltValues = int(self.requestTextField.get(
+                                str(i) + ".0", str(i + 1) + ".0")[:-1])
                             valueToWrite.append(textFieltValues)
-                        myClient.write_multiple_registers(int(self.startingAddressWrite.get()) - 1, valueToWrite)
+                        myClient.write_multiple_registers(
+                            int(self.startingAddressWrite.get()) - 1, valueToWrite)
                     else:
-                        textFieltValues = int(self.requestTextField.get('1.0', END)[:-1])
-                        myClient.write_single_register(int(self.startingAddressWrite.get()) - 1, textFieltValues)
+                        textFieltValues = int(
+                            self.requestTextField.get('1.0', END)[:-1])
+                        myClient.write_single_register(
+                            int(self.startingAddressWrite.get()) - 1, textFieltValues)
             except Exception as e:
-                messagebox.showerror('Exception writing values to Server', str(e))
+                messagebox.showerror(
+                    'Exception writing values to Server', str(e))
             myClient.close()
 
     def deleteValueToRequestList(self):
