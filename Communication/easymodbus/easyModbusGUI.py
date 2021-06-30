@@ -7,6 +7,7 @@ if sys.version_info[0] < 3:  # The Module "Tkinter" is named "tkinter" in Python
     import tkMessageBox as messagebox  # We import tkMessageBos as messagebox, because thats the name in Python 3
 
 else:
+    import tkinter as tk
     from tkinter import *
     from builtins import int
     from future.moves import tkinter
@@ -186,10 +187,10 @@ class EasyModbusGUI(Frame):
 
     def __ReadCoils(self):
         try:
-            modbusClient = ModbusClient(f'COM{int(self.portEntry.get())}')
-            if (not modbusClient.is_connected()):
-                modbusClient.connect()
-            coils = modbusClient.read_coils(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
+            myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
+            if (not myClient.is_connected()):
+                myClient.connect()
+            coils = myClient.read_coils(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
             self.responseTextField.delete('1.0', END)
             for coil in coils:
                 if (coil == FALSE):
@@ -201,14 +202,14 @@ class EasyModbusGUI(Frame):
         except Exception as e:
             messagebox.showerror('Exception Reading coils from Server', str(e))
         finally:
-            modbusClient.close()
+            myClient.close()
 
     def __ReadDiscreteInputs(self):
         try:
-            modbusClient = ModbusClient(f'COM{int(self.portEntry.get())}')
-            if (not modbusClient.is_connected()):
-                modbusClient.connect()
-            discrInputs = modbusClient.read_discreteinputs(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
+            myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
+            if (not myClient.is_connected()):
+                myClient.connect()
+            discrInputs = myClient.read_discreteinputs(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
             self.responseTextField.delete('1.0', END)
             for inp in discrInputs:
                 if (inp == FALSE):
@@ -220,14 +221,14 @@ class EasyModbusGUI(Frame):
         except Exception as e:
             messagebox.showerror('Exception Reading discrete inputs from Server', str(e))
         finally:
-            modbusClient.close()
+            myClient.close()
 
     def __ReadHoldingRegisters(self):
         try:
-            modbusClient = ModbusClient(f'COM{int(self.portEntry.get())}')
-            if (not modbusClient.is_connected()):
-                modbusClient.connect()
-            holdingRegisters = modbusClient.read_holdingregisters(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
+            myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
+            if (not myClient.is_connected()):
+                myClient.connect()
+            holdingRegisters = myClient.read_holdingregisters(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
             self.responseTextField.delete('1.0', END)
             for register in holdingRegisters:
 
@@ -236,35 +237,35 @@ class EasyModbusGUI(Frame):
             messagebox.showerror('Exception Reading holding registers from Server', str(e))
 
         finally:
-            modbusClient.close()
+            myClient.close()
 
     def __ReadInputRegisters(self):
         try:
-            modbusClient = ModbusClient(f'COM{int(self.portEntry.get())}')
-            if (not modbusClient.is_connected()):
-                modbusClient.connect()
-            inputRegisters = modbusClient.read_inputregisters(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
+            myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
+            if (not myClient.is_connected()):
+                myClient.connect()
+            inputRegisters = myClient.read_inputregisters(int(self.startingAddress.get()) - 1, int(self.quantity.get()))
             self.responseTextField.delete('1.0', END)
             for register in inputRegisters:
 
                 self.responseTextField.insert(END, str(register) + "\n")
 
-            modbusClient.close()
+            myClient.close()
         except Exception as e:
             messagebox.showerror('Exception Reading input Registers from Server', str(e))
 
     def __writeValuesToPLC(self):
         try:
-            modbusClient = ModbusClient(f'COM{int(self.portEntry.get())}')
+            myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
             is_open = True
         except Exception as e:
             messagebox.showerror('Exception writing values to Server', str(e))
-            modbusClient.close()
+            myClient.close()
         if is_open:
             try:
-                modbusClient = ModbusClient(f'COM{int(self.portEntry.get())}')
-                if (not modbusClient.is_connected()):
-                    modbusClient.connect()
+                myClient = ModbusClient(f'COM{int(self.portEntry.get())}')
+                if (not myClient.is_connected()):
+                    myClient.connect()
                 numberOfLines = int(self.requestTextField.index('end').split('.')[0]) - 2
                 print(numberOfLines)
                 if (self.variableDatatype.get() == 'Coils (bool)'):
@@ -276,27 +277,27 @@ class EasyModbusGUI(Frame):
                                 valueToWrite.append(1)
                             else:
                                 valueToWrite.append(0)
-                        modbusClient.write_multiple_coils(int(self.startingAddressWrite.get()) - 1, valueToWrite)
+                        myClient.write_multiple_coils_custom(int(self.startingAddressWrite.get()) - 1, valueToWrite)
                     else:
                         textFieltValues = str(self.requestTextField.get('1.0', END)[:-1])
                         if "TRUE" in textFieltValues:  # String comparison contains some ""Null" symbol
                             dataToSend = 1
                         else:
                             dataToSend = 0
-                        modbusClient.write_single_coil(int(self.startingAddressWrite.get()) - 1, dataToSend)
+                        myClient.write_single_coil(int(self.startingAddressWrite.get()) - 1, dataToSend)
                 else:
                     if (numberOfLines > 1):
                         valueToWrite = list()
                         for i in range(1, numberOfLines + 1):
                             textFieltValues = int(self.requestTextField.get(str(i) + ".0", str(i + 1) + ".0")[:-1])
                             valueToWrite.append(textFieltValues)
-                        modbusClient.write_multiple_registers(int(self.startingAddressWrite.get()) - 1, valueToWrite)
+                        myClient.write_multiple_registers(int(self.startingAddressWrite.get()) - 1, valueToWrite)
                     else:
                         textFieltValues = int(self.requestTextField.get('1.0', END)[:-1])
-                        modbusClient.write_single_register(int(self.startingAddressWrite.get()) - 1, textFieltValues)
+                        myClient.write_single_register(int(self.startingAddressWrite.get()) - 1, textFieltValues)
             except Exception as e:
                 messagebox.showerror('Exception writing values to Server', str(e))
-            modbusClient.close()
+            myClient.close()
 
     def deleteValueToRequestList(self):
         # numberOfLines = (int(self.requestTextField.index('end').split('.')[0]) - 2)
@@ -310,6 +311,6 @@ class EasyModbusGUI(Frame):
 
 
 if __name__ == '__main__':
-    root = Tk()
+    root = tk.Tk()
     app = EasyModbusGUI(root)
     app.mainloop()

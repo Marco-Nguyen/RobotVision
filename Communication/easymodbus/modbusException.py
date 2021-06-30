@@ -110,7 +110,7 @@ class CRCCheckFailedException(ModbusException):
         self.message = message
 
 
-class TimeoutError(ModbusException):
+class TimeoutError(Exception):
     def __init__(self, expression, message):
         """ Exception to be thrown if CRC Check failed
         Attributes:

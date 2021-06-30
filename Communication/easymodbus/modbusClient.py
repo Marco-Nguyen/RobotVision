@@ -5,6 +5,7 @@ Created on 12.09.2016
 '''
 import easymodbus.modbusException as Exceptions
 import importlib
+import serial
 import socket
 import struct
 import threading
@@ -36,7 +37,7 @@ class ModbusClient(object):
         # Constructor for RTU
         if len(params) == 1 & isinstance(params[0], str):
             print('rtu mode')
-            serial = importlib.import_module("serial")
+            # serial = importlib.import_module("serial")
             self.serialPort = params[0]
             self.__baudrate = 9600
             self.__parity = Parity.even
@@ -51,7 +52,7 @@ class ModbusClient(object):
         Connects to a Modbus-TCP Server or a Modbus-RTU Slave with the given Parameters
         """
         if (self.__ser is not None):
-            serial = importlib.import_module("serial")
+            # serial = importlib.import_module("serial")
             if self.__stopbits == 0:
                 self.__ser.stopbits = serial.STOPBITS_ONE
             elif self.__stopbits == 1:
@@ -68,31 +69,14 @@ class ModbusClient(object):
             self.__ser = serial.Serial(self.serialPort, self.__baudrate, timeout=self.__timeout, parity=self.__ser.parity, stopbits=self.__ser.stopbits, xonxoff=0, rtscts=0)
             self.__ser.writeTimeout = self.__timeout
         else:
-            raise 'Serial not found'
-
-    def __listen(self):
-        self.__stoplistening = False
-        self.__receivedata = bytearray()
-        try:
-            while (not self.__stoplistening):
-                if (len(self.__receivedata) == 0):
-                    self.__receivedata = bytearray()
-                    self.__timeout = 500
-                    if (self.__tcpClientSocket is not None):
-                        self.__receivedata = self.__tcpClientSocket.recv(256)
-        except socket.timeout:
-            self.__receivedata = None
+            raise Exception.ModuleException("Connecting error")
 
     def close(self):
         """
-        Closes Serial port, or TCP-Socket connection
+        Closes Serial port
         """
         if (self.__ser is not None):
             self.__ser.close()
-        if (self.__tcpClientSocket is not None):
-            self.__stoplistening = True
-            self.__tcpClientSocket.shutdown(socket.SHUT_RDWR)
-            self.__tcpClientSocket.close()
         self.__connected = False
 
     def read_discreteinputs(self, starting_address, quantity):
@@ -135,7 +119,7 @@ class ModbusClient(object):
             data = b
             self.check_error_read(data, bytes_to_read, index=0x82, quantity=quantity)
         else:
-            raise 'Serial not found'
+            raise Exception.ModuleException("Read discrete inputs error, self.__ser is None")
 
     def read_coils(self, starting_address, quantity):
         """
@@ -177,7 +161,7 @@ class ModbusClient(object):
             data = b
             self.check_error_read(data, bytes_to_read, index=0x81, quantity=quantity)
         else:
-            raise 'Serial not found'
+            raise Exception.ModuleException("Read coils error, self.__ser is None")
 
     def read_holdingregisters(self, starting_address, quantity):
         """
@@ -219,7 +203,7 @@ class ModbusClient(object):
 
             self.check_error_read(data, bytes_to_read, index=0x83, quantity=quantity)
         else:
-            raise 'Serial not found'
+            raise Exception.ModuleException("Read holding reg error, self.__ser is None")
 
     def read_inputregisters(self, starting_address, quantity):
         """
@@ -262,7 +246,7 @@ class ModbusClient(object):
             self.check_error_read(data, bytes_to_read, index=0x84, quantity=quantity)
 
         else:
-            raise 'Serial not found'
+            raise Exception.ModuleException("Read input reg error, self.__ser is None")
 
     def write_single_coil(self, starting_address, value):
         """
@@ -302,7 +286,7 @@ class ModbusClient(object):
             data = b
             self.check_error_write(data, bytes_to_read, index=0x85)
         else:
-            raise 'Serial not found'
+            raise Exception.ModuleException("Write single coil error, self.__ser is None")
 
     def write_single_register(self, starting_address, value):
         """
@@ -339,7 +323,7 @@ class ModbusClient(object):
             # Check for Exception
             self.check_error_write(data, bytes_to_read, index=0x86)
         else:
-            raise 'Serial not found'
+            raise Exception.ModuleException("Write single reg error, self.__ser is None")
 
     def write_multiple_coils(self, starting_address, values):
         """
@@ -363,18 +347,18 @@ class ModbusClient(object):
         quantityMSB = (len(values) & 0xFF00) >> 8
         valueToWrite = list()
         singleCoilValue = 0
-        coilValue = 1
         for i in range(0, len(values)):
             if ((i % 8) == 0):
                 if i > 0:
                     valueToWrite.append(singleCoilValue)
                 singleCoilValue = 0
 
-            if (values[i] == 1):
+            if (values[i] == True):
                 coilValue = 1
             else:
                 coilValue = 0
             singleCoilValue = ((coilValue) << (i % 8) | (singleCoilValue))
+
             valueToWrite.append(singleCoilValue)
 
         if (self.__ser is not None):
@@ -395,7 +379,11 @@ class ModbusClient(object):
             data = b
             self.check_error_write(data, bytes_to_read, 0x8F)
         else:
-            raise 'Serial not found'
+            raise Exception.ModuleException("Write multiple coils error, self.__ser is None")
+
+    def write_multiple_coils_custom(self, starting_address, values):
+        for i in range(len(values)):
+            self.write_single_coil(starting_address + i, values[i])
 
     def write_multiple_registers(self, starting_address, values):
         """
@@ -438,7 +426,7 @@ class ModbusClient(object):
             data = b
             self.check_error_write(data, bytes_to_read, 0x90)
         else:
-            raise 'Serial not found'
+            raise Exception.ModuleException("Write multiple regs error, self.__ser is None")
 
     def __calculateCRC(self, data, numberOfBytes, startByte):
         crc = 0xFFFF
@@ -454,7 +442,7 @@ class ModbusClient(object):
 
     def check_error_write(self, data, bytes_to_read, index):
         if (len(data) < bytes_to_read):
-            raise Exceptions.ModbusException('Read timeout Exception')
+            raise Exceptions.TimeoutError('Write timeout Exception')
         if ((data[1] == index) & (data[2] == 0x01)):
             raise Exceptions.function_codeNotSupportedException("Function code not supported by master")
         if ((data[1] == index) & (data[2] == 0x02)):
@@ -475,7 +463,7 @@ class ModbusClient(object):
 
     def check_error_read(self, data, bytes_to_read, index, quantity):
         if (len(data) < bytes_to_read):
-            raise Exceptions.ModbusException("Read timeout Exception")
+            raise Exceptions.TimeoutError("Read timeout Exception")
         if ((data[1] == index) & (data[2] == 0x01)):
             raise Exceptions.function_codeNotSupportedException("Function code not supported by master")
         if ((data[1] == index) & (data[2] == 0x02)):
