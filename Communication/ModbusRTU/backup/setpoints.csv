@@ -1,0 +1,8 @@
+name,address,type,value
+d1,1,coil,1
+d2,2,coil,0
+d3,3,coil,1
+dis,6,reg,123
+angle,7,reg,45
+d4,4,coil,0
+d5,5,coil,1

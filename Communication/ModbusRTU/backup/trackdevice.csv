@@ -1,0 +1,9 @@
+name,address,type
+d1,1,coil
+d2,2,coil
+d3,3,coil
+dis,6,hr
+angle,7,ir
+d4,4,coil
+d5,5,coil
+d11,11,coil
