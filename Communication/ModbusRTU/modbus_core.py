@@ -158,9 +158,16 @@ class ModbusApp(Ui_MainWindow):
 
     # connect block
     def connect_app(self):
-        self.connected = True
         self.com_set = self.spinBox.value()
         self.baudrate_set = self.comboBox.currentText()
+        try:
+            plc = ModbusClient(f'COM{self.com_set}')
+            if not plc.is_connected():
+                plc.connect()
+            print(plc.read_coils(0, 1))
+            self.connected = True
+        except Exception as e:
+            print(e)
         print(self.com_set, self.baudrate_set)
         if self.connected:
             self.connection_status.setStyleSheet("background-color: rgb(0, 170, 0)")
