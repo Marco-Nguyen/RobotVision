@@ -596,19 +596,6 @@
       </layout>
      </widget>
     </widget>
-    <widget class="QPushButton" name="setValue">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>350</y>
-       <width>121</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Set defaut points</string>
-     </property>
-    </widget>
     <widget class="QTableWidget" name="setValueTable">
      <property name="geometry">
       <rect>
@@ -662,17 +649,17 @@
      </attribute>
      <row>
       <property name="text">
-       <string>Angle</string>
+       <string>New Row</string>
       </property>
      </row>
      <row>
       <property name="text">
-       <string>Distance</string>
+       <string>New Row</string>
       </property>
      </row>
      <row>
       <property name="text">
-       <string>D170</string>
+       <string>New Row</string>
       </property>
      </row>
      <row>
@@ -721,19 +708,6 @@
       </property>
      </column>
     </widget>
-    <widget class="QPushButton" name="resetValues">
-     <property name="geometry">
-      <rect>
-       <x>160</x>
-       <y>350</y>
-       <width>161</width>
-       <height>31</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Reset default points</string>
-     </property>
-    </widget>
     <widget class="QGroupBox" name="groupBox_2">
      <property name="geometry">
       <rect>
@@ -749,9 +723,9 @@
      <widget class="QWidget" name="verticalLayoutWidget">
       <property name="geometry">
        <rect>
-        <x>0</x>
+        <x>10</x>
         <y>20</y>
-        <width>131</width>
+        <width>121</width>
         <height>131</height>
        </rect>
       </property>
@@ -790,6 +764,12 @@
        </item>
        <item>
         <widget class="QPushButton" name="stopReading">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>Stop</string>
          </property>
@@ -851,17 +831,23 @@
      <widget class="QWidget" name="gridLayoutWidget">
       <property name="geometry">
        <rect>
-        <x>0</x>
+        <x>-1</x>
         <y>30</y>
-        <width>160</width>
+        <width>161</width>
         <height>80</height>
        </rect>
       </property>
       <layout class="QGridLayout" name="gridLayout">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMaximumSize</enum>
+       </property>
        <item row="1" column="0">
         <widget class="QLabel" name="baudrate">
          <property name="text">
           <string>Baudrate</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -869,6 +855,9 @@
         <widget class="QLabel" name="connected_label">
          <property name="text">
           <string>Connected</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -946,6 +935,9 @@
          <property name="text">
           <string>COM</string>
          </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
         </widget>
        </item>
       </layout>
@@ -961,18 +953,68 @@
       </rect>
      </property>
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1:&lt;/p&gt;&lt;p&gt;2:&lt;/p&gt;&lt;p&gt;3:&lt;/p&gt;&lt;p&gt;4:&lt;/p&gt;&lt;p&gt;5:&lt;/p&gt;&lt;p&gt;6:&lt;/p&gt;&lt;p&gt;7:&lt;/p&gt;&lt;p&gt;8:&lt;/p&gt;&lt;p&gt;9:&lt;/p&gt;&lt;p&gt;10:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1: Reading&lt;/p&gt;&lt;p&gt;2:&lt;/p&gt;&lt;p&gt;3:&lt;/p&gt;&lt;p&gt;4:&lt;/p&gt;&lt;p&gt;5:&lt;/p&gt;&lt;p&gt;6:&lt;/p&gt;&lt;p&gt;7:&lt;/p&gt;&lt;p&gt;8:&lt;/p&gt;&lt;p&gt;9:&lt;/p&gt;&lt;p&gt;10:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
+    </widget>
+    <widget class="QWidget" name="horizontalLayoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>340</y>
+       <width>311</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="resetValues">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Reset </string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="updateValues">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Apply</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="setValue">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Write</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
     <zorder>groupBox_3</zorder>
     <zorder>trackingTable</zorder>
     <zorder>groupBox</zorder>
-    <zorder>setValue</zorder>
     <zorder>setValueTable</zorder>
-    <zorder>resetValues</zorder>
     <zorder>groupBox_2</zorder>
     <zorder>TrackingTable</zorder>
     <zorder>label</zorder>
+    <zorder>horizontalLayoutWidget</zorder>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

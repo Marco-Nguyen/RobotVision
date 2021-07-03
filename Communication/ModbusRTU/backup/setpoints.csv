@@ -6,3 +6,4 @@ dis,6,reg,123
 angle,7,reg,45
 d4,4,coil,0
 d5,5,coil,1
+d6,6,coil,1
