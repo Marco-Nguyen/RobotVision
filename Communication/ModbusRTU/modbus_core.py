@@ -23,21 +23,6 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtWidgets import QVBoxLayout
 
 
-class thread_update(QThread):
-    update_table = pyqtSignal()
-
-    def __init__(self):
-        self.reading = True
-
-    def run(self):
-
-        while self.reading:
-            pass
-
-    def stop(self):
-        self.reading = False
-
-
 class ModbusApp(Ui_MainWindow):
     def __init__(self, MainWindow):
         super().__init__()
@@ -48,9 +33,6 @@ class ModbusApp(Ui_MainWindow):
         self.resetValues.clicked.connect(self.reset_set_table)
         self.setValue.clicked.connect(self.write_to_PLC)
         self.updateValues.clicked.connect(self.update_set_value)
-        # self.thread = thread_update()
-        # self.thread.update_table.connect(self.start_reading)
-        # self.startReading.clicked.connect(self.thread.start)
         self.Watch.clicked.connect(self.init_tracking_table)
         self.startReading.clicked.connect(self.start_reading)
         self.stopReading.clicked.connect(self.stop_reading)
@@ -95,9 +77,6 @@ class ModbusApp(Ui_MainWindow):
         self.sr = 2 if isinstance(self.samplingRate.text(), str) else int(self.samplingRate.text())  # how many second read again
         self.samplingRate.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.sr}'))
         self.reading = True
-        # while self.reading:
-        #     self.update_tracking_table(False)
-        #     time.sleep(self.sr)
         self.update_tracking_table()
         self.set_led_on(1, 'green')
 
@@ -106,6 +85,14 @@ class ModbusApp(Ui_MainWindow):
         self.reading = False
         # self.thread.stop()
 
+    # check updateValue.csv file and write updated value to plc continuously
+    def start_writing(self):
+        pass
+
+    def stop_writing(self):
+        pass
+
+    # control tracking table
     def init_tracking_table(self):
         _translate = QtCore.QCoreApplication.translate
         self.read_csv_data('trackdevice')

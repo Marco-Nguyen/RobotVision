@@ -1,3 +1,6 @@
+"""
+to run the whole system
+"""
 import os
 import sys
 
