@@ -750,6 +750,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="Watch">
+         <property name="text">
+          <string>Watch</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="startReading">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Maximum">

@@ -51,6 +51,7 @@ class ModbusApp(Ui_MainWindow):
         # self.thread = thread_update()
         # self.thread.update_table.connect(self.start_reading)
         # self.startReading.clicked.connect(self.thread.start)
+        self.Watch.clicked.connect(self.init_tracking_table)
         self.startReading.clicked.connect(self.start_reading)
         self.stopReading.clicked.connect(self.stop_reading)
         self.set_random()
@@ -66,6 +67,7 @@ class ModbusApp(Ui_MainWindow):
             self.name_track = list(data['name'])
             self.type_track = list(data['type'])
             self.address_track = list(data['address'])
+        print(f'read from {table_name} done')
 
     # setpoints blocks
     def update_set_value(self):
@@ -93,33 +95,34 @@ class ModbusApp(Ui_MainWindow):
         self.sr = 2 if isinstance(self.samplingRate.text(), str) else int(self.samplingRate.text())  # how many second read again
         self.samplingRate.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.sr}'))
         self.reading = True
-        self.update_tracking_table()
         # while self.reading:
         #     self.update_tracking_table(False)
         #     time.sleep(self.sr)
-        self.update_tracking_table(False)
+        self.update_tracking_table()
+        self.set_led_on(1, 'green')
 
     def stop_reading(self):
+        self.set_led_on(1, 'red')
         self.reading = False
         # self.thread.stop()
 
-    def update_tracking_table(self, init=True):
-        if init:
-            _translate = QtCore.QCoreApplication.translate
-            self.read_csv_data('trackdevice')
-            table = self.trackingTable
-            # update name and type of tracking params
-            for i in range(len(self.name_track)):
-                table.verticalHeaderItem(i).setText(_translate("MainWindow", f"{self.name_track[i]}"))  # set name
-                table.setItem(i, 0, QTableWidgetItem(f"{self.type_track[i]}"))
-        else:
-            table = self.trackingTable
-            # read value from plc and update tracking values
-            for i in range(len(self.name_track)):
-                idx = int(self.address_track[i])
-                values = self.read_from_PLC(self.type_track[i], idx)
-                table.setItem(i, 1, QTableWidgetItem(f"{values[0]}"))
-            pass
+    def init_tracking_table(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.read_csv_data('trackdevice')
+        table = self.trackingTable
+        # update name and type of tracking params
+        for i in range(len(self.name_track)):
+            table.verticalHeaderItem(i).setText(_translate("MainWindow", f"{self.name_track[i]}"))  # set name
+            table.setItem(i, 0, QTableWidgetItem(f"{self.type_track[i]}"))
+        print('init tracking table done')
+
+    def update_tracking_table(self):
+        table = self.trackingTable
+        # read value from plc and update tracking values
+        for i in range(len(self.name_track)):
+            idx = int(self.address_track[i])
+            values = self.read_from_PLC(self.type_track[i], idx)
+            table.setItem(i, 1, QTableWidgetItem(f"{values}"))
         pass
 
     # reading and writing to PLC
@@ -131,17 +134,12 @@ class ModbusApp(Ui_MainWindow):
             plc.connect()
         for v, a, t in zip(self.values_set, self.address_set, self.type_set):
             if t == 'coil':
-                if int(v) != 0:
-                    v = 1
-                else:
-                    v = 0
+                v = 1 if int(v) != 0 else 0
                 plc.write_single_coil(a, v)
-                pass
             if t == 'reg':
                 v = int(v)
-                plc.write_single_coil(a, v)
-                pass
-        pass
+                plc.write_single_register(a, v)
+        print("write done")
 
     def read_from_PLC(self, type_, address):
         plc = ModbusClient(f'COM{self.com_set}')
@@ -176,11 +174,14 @@ class ModbusApp(Ui_MainWindow):
     # display led block
     def set_led_on(self, led_num, color):
         led_list = [self.led1, self.led2, self.led3, self.led4, self.led5, self.led6, self.led7, self.led8, self.led9, self.led10]
-        for idx in led_num:
-            led_list[idx - 1].setStyleSheet(f"background-color: {color}")
+        if isinstance(led_num, list):
+            for idx in led_num:
+                led_list[idx - 1].setStyleSheet(f"background-color: {color}")
+        elif isinstance(led_num, int):
+            led_list[led_num - 1].setStyleSheet(f"background-color: {color}")
 
     def set_random(self):
-        k = random.sample(range(1, 10), 5)
+        k = random.sample(range(2, 10), 5)
         self.set_led_on(k, 'green')
 
 
