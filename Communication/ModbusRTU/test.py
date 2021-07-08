@@ -26,8 +26,8 @@ class MainWindow(QMainWindow):
 
     def clickMethod(self):
         msg = QMessageBox()
-        msg.about(self, "Title", "Message")
-
+        # msg.about(self, "Title", "Message")
+        msg.setText('error')
         msg.setIcon(QMessageBox.Critical)
         msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
         msg.exec_()

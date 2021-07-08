@@ -19,6 +19,9 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtWidgets import QDialogButtonBox
 from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtWidgets import QVBoxLayout
 
@@ -38,14 +41,25 @@ class ModbusApp(Ui_MainWindow):
         self.stopReading.clicked.connect(self.stop_reading)
         self.set_random()
 
-    def popup_msg(self, msg, source_msg='', type_msg='warning'):
-        if type_msg == 'warning':
-            pass
-        elif type_msg == 'error':
-            pass
-        elif type_msg == 'infor':
-            pass
-        print(msg)
+    def popup_msg(self, msg, src_msg='', type_msg='warning'):
+        try:
+            self.popup = QMessageBox()
+            if type_msg == 'warning':
+                self.popup.setIcon(QMessageBox.Warning)
+                pass
+            elif type_msg == 'error':
+                self.popup.setIcon(QMessageBox.Critical)
+                pass
+            elif type_msg == 'infor':
+                self.popup.setIcon(QMessageBox.Information)
+                pass
+
+            self.popup.setText(f"[{type_msg}]: from {src_msg}\n{msg}")
+            self.popup.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            self.popup.exec_()
+            print(msg)
+        except Exception as e:
+            print('from popup_msg', e)
         pass
 
     def read_csv_data(self, table_name):
@@ -62,7 +76,7 @@ class ModbusApp(Ui_MainWindow):
                 self.address_track = list(data['address'])
             print(f'read from {table_name} done')
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e, src_msg=f"read_csv_data")
 
     # setpoints blocks
     def update_set_value(self):
@@ -74,7 +88,7 @@ class ModbusApp(Ui_MainWindow):
                     self.type_set[i] = table.item(i, 0).text()
                     self.values_set[i] = table.item(i, 1).text()
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     def reset_set_table(self):
         try:
@@ -86,7 +100,7 @@ class ModbusApp(Ui_MainWindow):
                 table.setItem(i, 0, QTableWidgetItem(f"{self.type_set[i]}"))
                 table.setItem(i, 1, QTableWidgetItem(f"{self.values_set[i]}"))
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
     # @pyqtSlot()
 
     # reaing contiunous block
@@ -98,7 +112,7 @@ class ModbusApp(Ui_MainWindow):
             self.update_tracking_table()
             self.set_led_on(1, 'green')
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     def stop_reading(self):
         try:
@@ -106,7 +120,7 @@ class ModbusApp(Ui_MainWindow):
             self.reading = False
             # self.thread.stop()
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     # check updateValue.csv file and write updated value to plc continuously
     def start_writing(self):
@@ -127,7 +141,7 @@ class ModbusApp(Ui_MainWindow):
                 table.setItem(i, 0, QTableWidgetItem(f"{self.type_track[i]}"))
             print('init tracking table done')
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     def update_tracking_table(self):
         try:
@@ -138,7 +152,7 @@ class ModbusApp(Ui_MainWindow):
                 values = self.read_from_PLC(self.type_track[i], idx)
                 table.setItem(i, 1, QTableWidgetItem(f"{values}"))
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     # reading and writing to PLC
 
@@ -157,7 +171,7 @@ class ModbusApp(Ui_MainWindow):
                     plc.write_single_register(a, v)
             print("write done")
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     def read_from_PLC(self, type_, address):
         try:
@@ -173,7 +187,7 @@ class ModbusApp(Ui_MainWindow):
             if type_.strip() == 'coil':
                 return plc.read_coils(address, 1)
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     # connect block
     def connect_app(self):
@@ -192,7 +206,7 @@ class ModbusApp(Ui_MainWindow):
             if self.connected:
                 self.connection_status.setStyleSheet("background-color: rgb(0, 170, 0)")
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     # display led block
     def set_led_on(self, led_num, color):
@@ -204,7 +218,7 @@ class ModbusApp(Ui_MainWindow):
             elif isinstance(led_num, int):
                 led_list[led_num - 1].setStyleSheet(f"background-color: {color}")
         except Exception as e:
-            self.show_error(e)
+            self.popup_msg(e)
 
     def set_random(self):
         k = random.sample(range(2, 10), 5)
