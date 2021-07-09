@@ -742,7 +742,7 @@
       </rect>
      </property>
      <property name="title">
-      <string>Read continuous</string>
+      <string>Continuous mode</string>
      </property>
      <widget class="QWidget" name="verticalLayoutWidget">
       <property name="geometry">
@@ -781,7 +781,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="startReading">
+        <widget class="QPushButton" name="startRunning">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
            <horstretch>0</horstretch>
@@ -794,7 +794,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="stopReading">
+        <widget class="QPushButton" name="stopRunning">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
            <horstretch>0</horstretch>
@@ -984,7 +984,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1: Reading&lt;/p&gt;&lt;p&gt;2:&lt;/p&gt;&lt;p&gt;3:&lt;/p&gt;&lt;p&gt;4:&lt;/p&gt;&lt;p&gt;5:&lt;/p&gt;&lt;p&gt;6:&lt;/p&gt;&lt;p&gt;7:&lt;/p&gt;&lt;p&gt;8:&lt;/p&gt;&lt;p&gt;9:&lt;/p&gt;&lt;p&gt;10:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;1: Running&lt;/p&gt;&lt;p&gt;2:&lt;/p&gt;&lt;p&gt;3:&lt;/p&gt;&lt;p&gt;4:&lt;/p&gt;&lt;p&gt;5:&lt;/p&gt;&lt;p&gt;6:&lt;/p&gt;&lt;p&gt;7:&lt;/p&gt;&lt;p&gt;8:&lt;/p&gt;&lt;p&gt;9:&lt;/p&gt;&lt;p&gt;10:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
     <widget class="QWidget" name="horizontalLayoutWidget">
@@ -992,7 +992,7 @@
       <rect>
        <x>10</x>
        <y>340</y>
-       <width>320</width>
+       <width>311</width>
        <height>61</height>
       </rect>
      </property>
@@ -1007,32 +1007,6 @@
         </property>
         <property name="text">
          <string>Reset </string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="updateValues">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Apply</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="setValue">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Write</string>
         </property>
        </widget>
       </item>
