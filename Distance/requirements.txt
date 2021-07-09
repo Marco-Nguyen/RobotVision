@@ -1,0 +1,4 @@
+opencv_python==4.5.2.52
+tensorflow==2.4.1
+numpy==1.19.5
+pyrealsense2==2.48.0.3381

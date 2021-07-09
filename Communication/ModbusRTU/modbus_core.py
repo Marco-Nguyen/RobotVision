@@ -34,28 +34,28 @@ class ModbusApp(Ui_MainWindow):
         self.connected = False
         self.connectButton.clicked.connect(self.connect_app)
         self.resetValues.clicked.connect(self.reset_set_table)
-        self.setValue.clicked.connect(self.write_to_PLC)
+        self.setValue.clicked.connect(self.set_default_PLC)
         self.updateValues.clicked.connect(self.update_set_value)
         self.Watch.clicked.connect(self.init_tracking_table)
-        self.startReading.clicked.connect(self.start_reading)
-        self.stopReading.clicked.connect(self.stop_reading)
+        self.startReading.clicked.connect(self.start_running)
+        self.stopReading.clicked.connect(self.stop_running)
+        self.read1time.clicked.connect(self.update_tracking_table)
         self.set_random()
+        self.is_error = False
 
-    def popup_msg(self, msg, src_msg='', type_msg='warning'):
+    def popup_msg(self, msg, src_msg='', type_msg='error'):
         try:
             self.popup = QMessageBox()
             if type_msg == 'warning':
                 self.popup.setIcon(QMessageBox.Warning)
-                pass
             elif type_msg == 'error':
                 self.popup.setIcon(QMessageBox.Critical)
-                pass
+                self.is_error = True
             elif type_msg == 'infor':
                 self.popup.setIcon(QMessageBox.Information)
-                pass
 
             self.popup.setText(f"[{type_msg}]: from {src_msg}\n{msg}")
-            self.popup.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            self.popup.setStandardButtons(QMessageBox.Ok)
             self.popup.exec_()
             print(msg)
         except Exception as e:
@@ -74,7 +74,12 @@ class ModbusApp(Ui_MainWindow):
                 self.name_track = list(data['name'])
                 self.type_track = list(data['type'])
                 self.address_track = list(data['address'])
-            print(f'read from {table_name} done')
+            elif table_name == 'values_update':
+                self.name_update = list(data['name'])
+                self.type_update = list(data['type'])
+                self.values_update = list(data['value'])
+                self.address_update = list(data['address'])
+            print(f'read csv from {table_name} done')
         except Exception as e:
             self.popup_msg(e, src_msg=f"read_csv_data")
 
@@ -88,7 +93,7 @@ class ModbusApp(Ui_MainWindow):
                     self.type_set[i] = table.item(i, 0).text()
                     self.values_set[i] = table.item(i, 1).text()
         except Exception as e:
-            self.popup_msg(e)
+            self.popup_msg(e, src_msg='update_set_value')
 
     def reset_set_table(self):
         try:
@@ -100,36 +105,55 @@ class ModbusApp(Ui_MainWindow):
                 table.setItem(i, 0, QTableWidgetItem(f"{self.type_set[i]}"))
                 table.setItem(i, 1, QTableWidgetItem(f"{self.values_set[i]}"))
         except Exception as e:
-            self.popup_msg(e)
+            self.popup_msg(e, src_msg='reset_set_table')
     # @pyqtSlot()
 
-    # reaing contiunous block
-    def start_reading(self):
-        try:
-            self.sr = 2 if isinstance(self.samplingRate.text(), str) else int(self.samplingRate.text())  # how many second read again
-            self.samplingRate.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.sr}'))
-            self.reading = True
-            self.update_tracking_table()
-            self.set_led_on(1, 'green')
-        except Exception as e:
-            self.popup_msg(e)
+    # run contiunous block
 
-    def stop_reading(self):
+    def start_running(self):
         try:
-            self.set_led_on(1, 'red')
-            self.reading = False
-            # self.thread.stop()
+            if self.connected:
+                self.sr = 0.14 if isinstance(self.samplingRate.text(), str) else int(self.samplingRate.text())  # how many second read again
+                self.samplingRate.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.sr}'))
+                self.running = True
+                self.set_led_on(1, 'green')
+                t1 = time.time()
+                while self.running and not self.is_error:
+                    t2 = time.time()
+                    if t2 - t1 >= self.sr:
+                        self._reading()
+                        self._writing()
+                        t1 = t2
+            else:
+                self.popup_msg("Com is not connect", src_msg='start_running', type_msg='warning')
         except Exception as e:
-            self.popup_msg(e)
+            self.popup_msg(e, src_msg='start_running')
+
+    def stop_running(self):
+        self.set_led_on(1, 'red')
+        self.running = False
+
+    def _reading(self):
+        try:
+            self.update_tracking_table()
+        except Exception as e:
+            self.popup_msg(e, src_msg='_reading')
 
     # check updateValue.csv file and write updated value to plc continuously
-    def start_writing(self):
-        pass
 
-    def stop_writing(self):
+    def _writing(self):
+        try:
+            if self.connected:
+                self.read_csv_data('values_update')
+                self.write_to_PLC(mode='update')
+            else:
+                self.popup_msg("Com is not connect", src_msg='_writing', type_msg='warning')
+        except Exception as e:
+            self.popup_msg(e, src_msg='_writing')
         pass
 
     # control tracking table
+
     def init_tracking_table(self):
         try:
             _translate = QtCore.QCoreApplication.translate
@@ -141,37 +165,54 @@ class ModbusApp(Ui_MainWindow):
                 table.setItem(i, 0, QTableWidgetItem(f"{self.type_track[i]}"))
             print('init tracking table done')
         except Exception as e:
-            self.popup_msg(e)
+            self.popup_msg(e, src_msg='init_tracking_table')
 
     def update_tracking_table(self):
         try:
-            table = self.trackingTable
-            # read value from plc and update tracking values
-            for i in range(len(self.name_track)):
-                idx = int(self.address_track[i])
-                values = self.read_from_PLC(self.type_track[i], idx)
-                table.setItem(i, 1, QTableWidgetItem(f"{values}"))
+            if self.connected:
+                table = self.trackingTable
+                # read value from plc and update tracking values
+                for i in range(len(self.name_track)):
+                    idx = int(self.address_track[i])
+                    values = self.read_from_PLC(self.type_track[i], idx)
+                    table.setItem(i, 1, QTableWidgetItem(f"{values}"))
+            else:
+                self.popup_msg("Com is not connect", src_msg='update_tracking_table', type_msg='warning')
         except Exception as e:
-            self.popup_msg(e)
+            self.popup_msg(e, src_msg='update_tracking_table')
 
     # reading and writing to PLC
+    def set_default_PLC(self):
+        try:
+            self.write_to_PLC(mode='init')
+        except Exception as e:
+            self.popup_msg(e, src_msg='set_default_PLC')
 
-    def write_to_PLC(self):
+    def write_to_PLC(self, mode='init'):
         try:
             # self.update_set_value()
             plc = ModbusClient(f'COM{self.com_set}')
             if not plc.is_connected():
                 plc.connect()
-            for v, a, t in zip(self.values_set, self.address_set, self.type_set):
-                if t == 'coil':
-                    v = 1 if int(v) != 0 else 0
-                    plc.write_single_coil(a, v)
-                if t == 'reg':
-                    v = int(v)
-                    plc.write_single_register(a, v)
-            print("write done")
+            if mode == 'init':
+                for v, a, t in zip(self.values_set, self.address_set, self.type_set):
+                    if t == 'coil':
+                        v = 1 if int(v) != 0 else 0
+                        plc.write_single_coil(a, v)
+                    if t == 'reg':
+                        v = int(v)
+                        plc.write_single_register(a, v)
+            elif mode == 'update':
+                for v, a, t in zip(self.values_update, self.address_update, self.type_update):
+                    if t == 'coil':
+                        v = 1 if int(v) != 0 else 0
+                        plc.write_single_coil(a, v)
+                    if t == 'reg':
+                        v = int(v)
+                        plc.write_single_register(a, v)
+            print(f"write {mode} done")
         except Exception as e:
-            self.popup_msg(e)
+            self.popup_msg(e, src_msg='write_to_PLC')
 
     def read_from_PLC(self, type_, address):
         try:
@@ -187,7 +228,7 @@ class ModbusApp(Ui_MainWindow):
             if type_.strip() == 'coil':
                 return plc.read_coils(address, 1)
         except Exception as e:
-            self.popup_msg(e)
+            self.popup_msg(e, src_msg='read_from_PLC')
 
     # connect block
     def connect_app(self):
@@ -201,7 +242,7 @@ class ModbusApp(Ui_MainWindow):
                 print(plc.read_coils(0, 1))
                 self.connected = True
             except Exception as e:
-                print(e)
+                self.popup_msg(e, src_msg='connect_app')
             print(self.com_set, self.baudrate_set)
             if self.connected:
                 self.connection_status.setStyleSheet("background-color: rgb(0, 170, 0)")
@@ -218,7 +259,7 @@ class ModbusApp(Ui_MainWindow):
             elif isinstance(led_num, int):
                 led_list[led_num - 1].setStyleSheet(f"background-color: {color}")
         except Exception as e:
-            self.popup_msg(e)
+            self.popup_msg(e, src_msg='led display')
 
     def set_random(self):
         k = random.sample(range(2, 10), 5)
