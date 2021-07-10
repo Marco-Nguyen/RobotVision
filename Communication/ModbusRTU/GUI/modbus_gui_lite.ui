@@ -750,7 +750,7 @@
         <x>10</x>
         <y>20</y>
         <width>121</width>
-        <height>131</height>
+        <height>121</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -775,6 +775,12 @@
        </item>
        <item>
         <widget class="QPushButton" name="Watch">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>Watch</string>
          </property>
@@ -783,7 +789,7 @@
        <item>
         <widget class="QPushButton" name="startRunning">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -796,7 +802,7 @@
        <item>
         <widget class="QPushButton" name="stopRunning">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -991,16 +997,19 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>340</y>
+       <y>350</y>
        <width>311</width>
-       <height>61</height>
+       <height>41</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="sizeConstraint">
+       <enum>QLayout::SetDefaultConstraint</enum>
+      </property>
       <item>
        <widget class="QPushButton" name="resetValues">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -1012,6 +1021,12 @@
       </item>
       <item>
        <widget class="QPushButton" name="read1time">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="text">
          <string>Read</string>
         </property>

@@ -1,9 +1,9 @@
 name,address,type,value
-d1,1,coil,1
-d2,2,coil,0
-d3,3,coil,1
-dis,6,reg,123
-angle,7,reg,45
-d4,4,coil,0
-d5,5,coil,1
-d6,6,coil,1
+m1,1,coil,1
+m2,2,coil,0
+m3,3,coil,1
+m4,4,coil,0
+m5,5,coil,1
+m6,6,coil,1
+distance,1,reg,0
+angle,2,reg,0

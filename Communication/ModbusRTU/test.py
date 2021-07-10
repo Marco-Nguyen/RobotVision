@@ -322,3 +322,142 @@
 #     app = QApplication(sys.argv)
 #     gui = Gui()
 #     sys.exit(app.exec_())
+
+
+# import sys
+# from time import sleep
+
+# from PyQt5.QtCore import Qt
+# from PyQt5.QtWidgets import (
+#     QApplication,
+#     QLabel,
+#     QMainWindow,
+#     QPushButton,
+#     QVBoxLayout,
+#     QWidget,
+# )
+
+
+# class Window(QMainWindow):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.clicksCount = 0
+#         self.setupUi()
+
+#     def setupUi(self):
+#         self.setWindowTitle("Freezing GUI")
+#         self.resize(300, 150)
+#         self.centralWidget = QWidget()
+#         self.setCentralWidget(self.centralWidget)
+#         # Create and connect widgets
+#         self.clicksLabel = QLabel("Counting: 0 clicks", self)
+#         self.clicksLabel.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+#         self.stepLabel = QLabel("Long-Running Step: 0")
+#         self.stepLabel.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+#         self.countBtn = QPushButton("Click me!", self)
+#         self.countBtn.clicked.connect(self.countClicks)
+#         self.longRunningBtn = QPushButton("Long-Running Task!", self)
+#         self.longRunningBtn.clicked.connect(self.runLongTask)
+#         # Set the layout
+#         layout = QVBoxLayout()
+#         layout.addWidget(self.clicksLabel)
+#         layout.addWidget(self.countBtn)
+#         layout.addStretch()
+#         layout.addWidget(self.stepLabel)
+#         layout.addWidget(self.longRunningBtn)
+#         self.centralWidget.setLayout(layout)
+
+#     def countClicks(self):
+#         self.clicksCount += 1
+#         self.clicksLabel.setText(f"Counting: {self.clicksCount} clicks")
+
+#     def reportProgress(self, n):
+#         self.stepLabel.setText(f"Long-Running Step: {n}")
+
+#     def runLongTask(self):
+#         """Long-running task in 5 steps."""
+#         for i in range(5):
+#             sleep(1)
+#             self.reportProgress(i + 1)
+
+
+# app = QApplication(sys.argv)
+# win = Window()
+# win.show()
+# sys.exit(app.exec())
+
+
+# import logging
+# import random
+# import sys
+# import time
+
+# from PyQt5.QtCore import QRunnable, Qt, QThreadPool
+# from PyQt5.QtWidgets import (
+#     QApplication,
+#     QLabel,
+#     QMainWindow,
+#     QPushButton,
+#     QVBoxLayout,
+#     QWidget,
+# )
+
+# logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+# # 1. Subclass QRunnable
+
+
+# class Runnable(QRunnable):
+#     def __init__(self, n):
+#         super().__init__()
+#         self.n = n
+
+#     def run(self):
+#         # Your long-running task goes here ...
+#         n = 1
+#         for i in range(n):
+#             logging.info(f"Working in thread {self.n}, step {i + 1}/{n}")
+#             time.sleep(random.randint(700, 2500) / 1000)
+
+
+# class Window(QMainWindow):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.setupUi()
+
+#     def setupUi(self):
+#         self.setWindowTitle("QThreadPool + QRunnable")
+#         self.resize(250, 150)
+#         self.centralWidget = QWidget()
+#         self.setCentralWidget(self.centralWidget)
+#         # Create and connect widgets
+#         self.label = QLabel("Hello, World!")
+#         self.label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+#         countBtn = QPushButton("Click me!")
+#         countBtn.clicked.connect(self.runTasks)
+#         # Set the layout
+#         layout = QVBoxLayout()
+#         layout.addWidget(self.label)
+#         layout.addWidget(countBtn)
+#         self.centralWidget.setLayout(layout)
+
+#     def runTasks(self):
+#         threadCount = QThreadPool.globalInstance().maxThreadCount()
+#         self.label.setText(f"Running {threadCount} Threads")
+#         pool = QThreadPool.globalInstance()
+#         for i in range(threadCount):
+#             # 2. Instantiate the subclass of QRunnable
+#             runnable = Runnable(i)
+#             # 3. Call start()
+#             pool.start(runnable)
+
+
+# app = QApplication(sys.argv)
+# window = Window()
+# window.show()
+# sys.exit(app.exec())
+
+def correction_data(x): return x.strip()[0]
+
+
+print(correction_data(' 1d afda'))
