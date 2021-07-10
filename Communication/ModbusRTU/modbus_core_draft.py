@@ -5,13 +5,28 @@ import pandas as pd
 import pprint
 import random
 import sys
-
+import time
 
 from GUI.modbus_gui_lite import Ui_MainWindow
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QRunnable
+from PyQt5.QtCore import QThreadPool
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem
+
+
+class Runnable(QRunnable):
+    def __init__(self, func, run):
+        super().__init__()
+        self.func = func
+        self.run_ = run
+
+    def run(self):
+        # Your long-running task goes here ...
+        if self.run_:
+            self.func()
 
 
 class ModbusApp(Ui_MainWindow):
@@ -55,12 +70,12 @@ class ModbusApp(Ui_MainWindow):
             elif type_msg.lower() == 'infor':
                 self.popup.setIcon(QMessageBox.Information)
 
-            self.popup.setText(f"[{type_msg}]: from {src_msg}\n{msg}")
+            self.popup.setText(f"[{type_msg.upper()}] -> From: {src_msg}\nDetails: {msg}")
             self.popup.setStandardButtons(QMessageBox.Ok)
             self.popup.exec_()
-            print(msg)
+            print('>>', msg)
         except Exception as e:
-            print('from popup_msg', e)
+            print('-> From: popup_msg', e)
         pass
 
     def read_csv_data(self, table_name):
@@ -71,7 +86,6 @@ class ModbusApp(Ui_MainWindow):
         """
         try:
             data = pd.read_csv(f'backup/{table_name}.csv')
-
             self.database[table_name]['name'] = list(data['name'])
             self.database[table_name]['type'] = list(data['type'])
             self.database[table_name]['address'] = list(data['address'])
@@ -79,7 +93,7 @@ class ModbusApp(Ui_MainWindow):
                 self.database[table_name]['value'] = list(data['value'])
 
             print(f'read csv from {table_name} done')
-            pprint.pprint(self.database)
+            # pprint.pprint(self.database)
         except Exception as e:
             self.popup_msg(e, src_msg="read_csv_data")
 
@@ -96,8 +110,8 @@ class ModbusApp(Ui_MainWindow):
                         i, 0).text()
                     self.database['setpoints']['value'][i] = table.item(
                         i, 1).text()
-            print('new setpoints:')
-            pprint.pprint(self.database)
+            print('Apply new set points')
+            # pprint.pprint(self.database)
         except Exception as e:
             self.popup_msg(e, src_msg='update_set_value')
 
@@ -129,7 +143,7 @@ class ModbusApp(Ui_MainWindow):
             # update name and type of tracking params
             for i in range(len(self.database['trackdevice']['name'])):
                 table.verticalHeaderItem(i).setText(_translate(
-                    "MainWindow", f"{self.database['trackdevice']['name'][i]}"))  # set name
+                    "MainWindow", f"{self.database['trackdevice']['name'][i].upper()}"))  # set name
                 table.setItem(i, 0, QTableWidgetItem(
                     f"{self.database['trackdevice']['type'][i]}"))
             print('init tracking table done')
@@ -165,29 +179,36 @@ class ModbusApp(Ui_MainWindow):
                     self.samplingRate.text())  # how many second read again
                 self.samplingRate.setText(
                     QtCore.QCoreApplication.translate("MainWindow", f'{self.sr}'))
-                self.sr *= 1000  # change to miliseconds
+                # self.sr *= 1000  # change to miliseconds
                 self.running = True
-                self.set_led_on(1, 'green')
                 # run timer to read and write each sample time
+                t1 = time.time()
                 if not self.is_error:
-                    self.timer.connect(self._running)
-                    self.timer.start(self.sr)
+                    while self.running:
+                        t2 = time.time()
+                        if t2 - t1 >= self.sr:
+                            self.runTasks()
+                            t1 = t2
+
             else:
                 self.popup_msg("Com is not connect", src_msg='start_running', type_msg='warning')
         except Exception as e:
             self.popup_msg(e, src_msg='start_running')
 
     def stop_running(self):
-        self.set_led_on(1, 'red')
+        print('>> stop running')
         self.running = False
 
     def _running(self):
         """run both reading and writting process
         """
         if self.running:
+            print('>> still running')
+            self.set_led_on(1, 'green')
             self._reading()
             self._writing()
         else:
+            self.set_led_on(1, 'red')
             pass
 
     def _reading(self):
@@ -211,6 +232,20 @@ class ModbusApp(Ui_MainWindow):
             self.popup_msg(e, src_msg='_writing')
         pass
 
+    def runTasks(self):
+        threadCount = QThreadPool.globalInstance().maxThreadCount()
+        self.label.setText(f"Running {threadCount} Threads")
+        pool = QThreadPool.globalInstance()
+        # for i in range(threadCount):
+        #     # 2. Instantiate the subclass of QRunnable
+        #     runnable = Runnable(i)
+        #     # 3. Call start()
+        #     pool.start(runnable)
+        runnable1 = Runnable(self._reading, self.running)
+        runnable2 = Runnable(self._reading, self.running)
+        pool.start(runnable1)
+        pool.start(runnable2)
+
     # ==========================================================================================================================/
     # reading and writing to PLC
 
@@ -223,28 +258,41 @@ class ModbusApp(Ui_MainWindow):
             update mode is for writting updated value from setpoints.csv.
             Defaults to 'init'.
         """
+        values, types, address = [], [], []
         try:
             plc = ModbusClient(f'COM{self.com_set}')
             if not plc.is_connected():
                 plc.connect()
+            self.connected = True
 
             if mode == 'init':
                 table_name = 'setpoints'
             elif mode == 'update':
                 table_name = 'values_update'
-
-            values = self.database[table_name]['value']
-            types = self.database[table_name]['type']
-            address = self.database[table_name]['address']
-
-            for v, a, t in zip(values, types, address):
-                if t == 'coil':
-                    v = 1 if int(v) != 0 else 0
-                    plc.write_single_coil(a, v)
-                if t == 'reg':
-                    v = int(v)
-                    plc.write_single_register(a, v)
-
+            try:
+                values = self.database[table_name]['value']
+                types = self.database[table_name]['type']
+                address = self.database[table_name]['address']
+            except Exception as e:
+                self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='warning')
+            # print(values, types, address)
+            try:
+                if not any(len(x) == 0 for x in [values, types, address]):
+                    for v, a, t in zip(values, address, types):
+                        if t == 'coil':
+                            v = 1 if int(v) != 0 else 0
+                            plc.write_single_coil(a, v)
+                        elif t == 'reg':
+                            v = int(v)
+                            plc.write_single_register(a, v)
+                        else:
+                            print('wrong types')
+                else:
+                    self.popup_msg(msg='database is empty', src_msg='write_to_PLC', type_msg='infor')
+                    self.connected = False
+            except Exception as e:
+                self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='warning')
+                self.connected = False
             print(f"write {mode} done")
         except Exception as e:
             self.popup_msg(e, src_msg='write_to_PLC')
@@ -264,13 +312,13 @@ class ModbusApp(Ui_MainWindow):
             if not plc.is_connected():
                 plc.connect()
             if type_.strip() == 'hr':
-                return plc.read_holdingregisters(address, 1)
+                return plc.read_holdingregisters(address, 1)[0]
 
             if type_.strip() == 'ir':
-                return plc.read_inputregisters(address, 1)
+                return plc.read_inputregisters(address, 1)[0]
 
             if type_.strip() == 'coil':
-                return plc.read_coils(address, 1)
+                return plc.read_coils(address, 1)[0]
         except Exception as e:
             self.popup_msg(e, src_msg='read_from_PLC')
 
@@ -287,16 +335,23 @@ class ModbusApp(Ui_MainWindow):
                     plc.connect()
                 self.connected = True
                 # update values from set value table and write to plc
+
+                plc.close()
                 self.update_set_value()
                 self.write_to_PLC('init')
-            except Exception as e:
-                self.popup_msg(e, src_msg='connect_app')
 
-            if self.connected:
-                self.connection_status.setStyleSheet("background-color: rgb(0, 170, 0)")
-                print('Connected with COM', self.com_set, 'at', self. baudrate_set)
+                if self.connected:
+                    self.connection_status.setStyleSheet("background-color: green")
+                    print('Connected with COM', self.com_set, 'at', self. baudrate_set)
+                else:
+                    self.connection_status.setStyleSheet(f"background-color: red")
+                    print('Disconnect with COM', self.com_set)
+            except Exception as e:
+                self.connection_status.setStyleSheet(f"background-color: red")
+                self.popup_msg(e, src_msg='connect_app')
         except Exception as e:
-            self.popup_msg(e)
+            self.connection_status.setStyleSheet(f"background-color: red")
+            self.popup_msg(e, src_msg='connect_app')
 
     # display led block
     def set_led_on(self, led_num, color):
@@ -318,7 +373,7 @@ class ModbusApp(Ui_MainWindow):
             self.popup_msg(e, src_msg='led display')
 
     def set_random(self):
-        k = random.sample(range(2, 10), 5)
+        k = random.sample(range(3, 10), 3)
         self.set_led_on(k, 'green')
 
 

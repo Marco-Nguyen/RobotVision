@@ -5,7 +5,7 @@ import pandas as pd
 import pprint
 import random
 import sys
-
+import time
 
 from GUI.modbus_gui_lite import Ui_MainWindow
 from PyQt5 import QtCore
@@ -105,9 +105,18 @@ class ModbusApp(Ui_MainWindow):
         """
         try:
             _translate = QtCore.QCoreApplication.translate
+            # reset table
+            table = self.setValueTable
+            nrows = table.rowCount()
+            for i in range(nrows):
+                table.verticalHeaderItem(i).setText(_translate("MainWindow", "newRow"))  # set name
+
+            table.clearContents()
+
+            # update data
             self.read_csv_data('setpoints')
+            # print(len(self.database['setpoints']['name']))
             for i in range(len(self.database['setpoints']['name'])):
-                table = self.setValueTable
                 table.verticalHeaderItem(i).setText(_translate(
                     "MainWindow", self.database['setpoints']['name'][i]))  # set name
                 table.setItem(i, 0, QTableWidgetItem(
@@ -158,13 +167,21 @@ class ModbusApp(Ui_MainWindow):
     def start_running(self):
         """connect to the start button, if pressed, run the writting to PLC and updating tracking table contiunously.
         """
+        correction_value = 0  # delay time
+        sr_default = True
+        try:
+            self.sr = float(self.samplingRate.text())
+            sr_default = False
+        except Exception:
+            pass
         try:
             if self.connected:
-                self.sr = 0.14 if isinstance(self.samplingRate.text(), str) else int(
-                    self.samplingRate.text())  # how many second read again
-                self.samplingRate.setText(
-                    QtCore.QCoreApplication.translate("MainWindow", f'{self.sr}'))
-                self.sr *= 1000  # change to miliseconds
+                if sr_default:
+                    self.sr = 0.14   # how many second read again
+                    self.samplingRate.setText(
+                        QtCore.QCoreApplication.translate("MainWindow", f'{self.sr}'))
+                self.sr = int((self.sr - correction_value) * 1000)
+                print("SamplingRate: ", self.sr)  # change to miliseconds
                 self.running = True
                 # run timer to read and write each sample time
                 if not self.is_error:
@@ -184,12 +201,18 @@ class ModbusApp(Ui_MainWindow):
         """
         if self.running:
             print('>> still running')
-            self.set_led_on(1, 'green')
+            start_time = time.time()
             self._reading()
+            read_time = time.time()
             self._writing()
+            write_time = time.time()
+            print(f'Executing time: read {read_time - start_time}s write {write_time - read_time}s total {time.time() - start_time}s')
         else:
-            self.set_led_on(1, 'red')
+            print('Not running')
+            self.timer.stop()
             pass
+        color = 'green' if self.running else 'red'
+        self.set_led_on(1, color)
 
     def _reading(self):
         """read from PLC and update tracking table
