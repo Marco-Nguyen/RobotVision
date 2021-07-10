@@ -1,0 +1,4 @@
+pandas==1.2.4
+EasyModbus==1.4.0
+PyQt5==5.15.4
+pyserial==3.5

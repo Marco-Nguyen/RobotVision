@@ -63,7 +63,7 @@ class ModbusApp(Ui_MainWindow):
             print('-> From: popup_msg', e)
         pass
 
-    def read_csv_data(self, table_name):
+    def read_table_data(self, table_name):
         """Read data from csv file and save in the database
 
         Args:
@@ -80,7 +80,7 @@ class ModbusApp(Ui_MainWindow):
             print(f'read csv from {table_name} done')
             # pprint.pprint(self.database)
         except Exception as e:
-            self.popup_msg(e, src_msg="read_csv_data")
+            self.popup_msg(e, src_msg="read_table_data")
 
     # setpoints blocks
     def update_set_value(self):
@@ -114,7 +114,7 @@ class ModbusApp(Ui_MainWindow):
             table.clearContents()
 
             # update data
-            self.read_csv_data('setpoints')
+            self.read_table_data('setpoints')
             # print(len(self.database['setpoints']['name']))
             for i in range(len(self.database['setpoints']['name'])):
                 table.verticalHeaderItem(i).setText(_translate(
@@ -132,7 +132,7 @@ class ModbusApp(Ui_MainWindow):
         """
         try:
             _translate = QtCore.QCoreApplication.translate
-            self.read_csv_data('trackdevice')
+            self.read_table_data('trackdevice')
             table = self.trackingTable
             # update name and type of tracking params
             for i in range(len(self.database['trackdevice']['name'])):
@@ -227,7 +227,7 @@ class ModbusApp(Ui_MainWindow):
         """
         try:
             if self.connected:
-                self.read_csv_data('values_update')
+                self.read_table_data('values_update')
                 self.write_to_PLC(mode='update')
             else:
                 self.popup_msg("Com is not connect", src_msg='_writing', type_msg='warning')
