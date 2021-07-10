@@ -1,6 +1,7 @@
 from easymodbus.modbusClient import ModbusClient
 
 
+import os
 import pandas as pd
 import pprint
 import random
@@ -18,7 +19,7 @@ class ModbusApp(Ui_MainWindow):
     def __init__(self, MainWindow):
         super().__init__()
         self.setupUi(MainWindow)
-        self.stop_update = False
+
         self.connected = False
         self.is_error = False
 
@@ -65,6 +66,7 @@ class ModbusApp(Ui_MainWindow):
             print('-> From: popup_msg', e)
         pass
     # ==========================================================================================================================/
+    # read and write to database format using pandas
 
     def read_table_data(self, table_name, format_='csv'):
         """Read data from csv file and save in the database
@@ -73,22 +75,34 @@ class ModbusApp(Ui_MainWindow):
             table_name (str): name of csv file. Available: 'setpoints', 'trackdevice', 'values_update'
         """
         try:
-            data = {}
-            if format_ == 'csv':
-                data = pd.read_csv(f'backup/{table_name}.{format_}')
-            self.database[table_name]['name'] = list(data['name'])
-            self.database[table_name]['type'] = list(data['type'])
-            self.database[table_name]['address'] = list(data['address'])
-            if table_name != 'trackdevice':
-                self.database[table_name]['value'] = list(data['value'])
+            PATH = f'backup/{table_name}.{format_}'
+            if os.path.is_file(PATH):
+                data = pd.read_csv()
+                self.database[table_name]['name'] = list(data['name'])
+                self.database[table_name]['type'] = list(data['type'])
+                self.database[table_name]['address'] = list(data['address'])
+                if table_name != 'trackdevice':
+                    self.database[table_name]['value'] = list(data['value'])
+                print(f'read {format_} from {table_name}.{format_} done')
+            else:
+                self.popup_msg(f'{table_name}.{format_} not found', src_msg='read_table_data', type_msg='infor')
+                print(f'{table_name}.{format_} not found')
+                pass
 
-            print(f'read csv from {table_name}.{format_} done')
             # pprint.pprint(self.database)
         except Exception as e:
             self.popup_msg(e, src_msg="read_table_data")
 
     def write_table_data(self, table_name, format_):
-
+        try:
+            df = pd.DataFrame.from_dict(self.database[table_name])
+            PATH = f'backup/{table_name}.{format_}'
+            if format_ == 'csv':
+                df.to_csv(PATH, index=False)
+            elif format_ == 'pkl':
+                df.to_pickle(PATH, index=False)
+        except Exception as e:
+            self.popup_msg(e, src_msg='write_table_data')
         pass
     # ==========================================================================================================================/
 
@@ -136,7 +150,7 @@ class ModbusApp(Ui_MainWindow):
         except Exception as e:
             self.popup_msg(e, src_msg='reset_set_table')
 
-    # control tracking table
+    # tracking block
     def init_tracking_table(self):
         """initialize the table widget to the tracking table in UI widget.
         """
@@ -210,7 +224,7 @@ class ModbusApp(Ui_MainWindow):
         """run both reading and writting process
         """
         if self.running:
-            print('>> still running')
+            print('\n>> still running ================================== <<')
             start_time = time.time()
             self._reading()
             read_time = time.time()
@@ -249,6 +263,7 @@ class ModbusApp(Ui_MainWindow):
     # ==========================================================================================================================/
 
     def transform_data(self):
+        # transform values from update csv file to coil state with the define rules
         try:
             # pprint.pprint(self.database)
             dis = self.database['values_update']['value'][0]
@@ -266,8 +281,7 @@ class ModbusApp(Ui_MainWindow):
             for i in range(len(dump_coils)):
                 self.database['control']['value'][i] = int(dump_coils[i])
             # write to csv
-            df = pd.DataFrame.from_dict(self.database['control'])
-            df.to_csv('backup/control.csv', mode='w', index=False)
+            self.write_table_data(table_name='control', format_='csv')
             # print(df)
 
         except Exception as e:

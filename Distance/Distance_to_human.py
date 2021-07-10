@@ -8,6 +8,8 @@ from realsense_depth import *
 # Initialize
 focal = 875.81
 dc = DepthCamera()
+PATH_TO_CSV = r'F:\Laboratories\Lab Robotics&AI\Dowload\Output_app\modbus_core\backup\values_update.csv'
+PATH_TO_MODEL = r"F:\Laboratories\Lab Robotics&AI\RobotVision\Distance\DL_distance\dnn\frozen_inference_graph_coco.pb"
 
 
 class DetectorAPI:
@@ -63,7 +65,7 @@ class DetectorAPI:
 
 
 def angle_calculation(x_c, y_c, x, y, dist):
-    hor_angle = np.arcsin(np.abs(x_c - x) / focal) * 180 / np.pi
+    hor_angle = np.arcsin((x_c - x) / focal) * 180 / np.pi
     ver_angle = np.arcsin(np.abs(y_c - y) / focal) * 180 / np.pi
     dia_angle = np.arcsin(np.sqrt((x_c - x)**2 + (y_c - y)**2) / focal) * 180 / np.pi
     return hor_angle, ver_angle, dia_angle
@@ -73,18 +75,18 @@ def updateValue(line, dist, angle):
     temp_list = []
     line_to_override = {}
     # Read all data from the csv file.
-    with open('Communication/ModbusRTU/backup/values_update.csv', 'r') as b:
+    with open(PATH_TO_CSV, 'r') as b:
         data = csv.reader(b)
         temp_list.extend(data)
 
     # data to override in the format {line_num_to_override:data_to_write}.
-    if line == 4:
+    if line == 1:
         line_to_override = {line: ['dis', 6, 'reg', dist]}
-    elif line == 5:
+    elif line == 2:
         line_to_override = {line: ['angle', 7, 'reg', angle]}
 
     # Write data to the csv file and replace the lines in the line_to_override dict.
-    with open('Communication/ModbusRTU/backup/values_update.csv', 'w', newline='') as f:
+    with open(PATH_TO_CSV, 'w', newline='') as f:
         writer = csv.writer(f)
         for line, row in enumerate(temp_list):
             data = line_to_override.get(line, row)
@@ -109,8 +111,8 @@ def updateValue(line, dist, angle):
 #                     cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
 
 
-if __name__ == "__main__":
-    model_path = "PATH"
+def run():
+    model_path = PATH_TO_MODEL
     odapi = DetectorAPI(path_to_ckpt=model_path)
     threshold = 0.8
 
@@ -134,19 +136,24 @@ if __name__ == "__main__":
                 y_c_human = np.abs(int(box[0] + (box[2] - box[0]) / 2))
                 dist = depth_frame[y_c_human, x_c_human]
                 dist_array.append(dist)
-                if len(dist_array) == 7:
+                if len(dist_array) == 3:
                     distance = np.average(dist_array)
                     dist_array = []
-                ha, va, da = angle_calculation(xc, yc, x_c_human, y_c_human, distance)
+                ha, _, _ = angle_calculation(xc, yc, x_c_human, y_c_human, distance)
                 # command(distance, ha, x_c_human)
                 cv2.putText(color_frame, "{:.2f}mm".format(distance), (box[1] + 20, box[0] + 20),
                             cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
                 cv2.putText(color_frame, "Angle: {:.2f}".format(ha), (box[1] + 20, box[0] + 40),
                             cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
-                updateValue(4, distance, ha)
-                updateValue(5, distance, ha)
+                updateValue(1, distance, ha)
+                updateValue(2, distance, ha)
 
         cv2.imshow("preview", color_frame)
         key = cv2.waitKey(1)
         if key & 0xFF == ord('q'):
             break
+
+
+if __name__ == "__main__":
+
+    run()
