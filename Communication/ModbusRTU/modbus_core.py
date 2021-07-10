@@ -35,7 +35,9 @@ class ModbusApp(Ui_MainWindow):
         self.timer = QtCore.QTimer()
         # database to save all value from 3 csv files
         self.database = {'setpoints': {},
-                         'trackdevice': {}, 'values_update': {}}
+                         'trackdevice': {},
+                         'values_update': {},
+                         'control': {}}
 
     def popup_msg(self, msg, src_msg='', type_msg='error'):
         """Create popup window to the ui
@@ -62,25 +64,33 @@ class ModbusApp(Ui_MainWindow):
         except Exception as e:
             print('-> From: popup_msg', e)
         pass
+    # ==========================================================================================================================/
 
-    def read_table_data(self, table_name):
+    def read_table_data(self, table_name, format_='csv'):
         """Read data from csv file and save in the database
 
         Args:
             table_name (str): name of csv file. Available: 'setpoints', 'trackdevice', 'values_update'
         """
         try:
-            data = pd.read_csv(f'backup/{table_name}.csv')
+            data = {}
+            if format_ == 'csv':
+                data = pd.read_csv(f'backup/{table_name}.{format_}')
             self.database[table_name]['name'] = list(data['name'])
             self.database[table_name]['type'] = list(data['type'])
             self.database[table_name]['address'] = list(data['address'])
             if table_name != 'trackdevice':
                 self.database[table_name]['value'] = list(data['value'])
 
-            print(f'read csv from {table_name} done')
+            print(f'read csv from {table_name}.{format_} done')
             # pprint.pprint(self.database)
         except Exception as e:
             self.popup_msg(e, src_msg="read_table_data")
+
+    def write_table_data(self, table_name, format_):
+
+        pass
+    # ==========================================================================================================================/
 
     # setpoints blocks
     def update_set_value(self):
@@ -228,11 +238,41 @@ class ModbusApp(Ui_MainWindow):
         try:
             if self.connected:
                 self.read_table_data('values_update')
-                self.write_to_PLC(mode='update')
+                self.read_table_data('control')
+                self.transform_data()
+                self.write_to_PLC(mode='control')
             else:
                 self.popup_msg("Com is not connect", src_msg='_writing', type_msg='warning')
         except Exception as e:
             self.popup_msg(e, src_msg='_writing')
+        pass
+    # ==========================================================================================================================/
+
+    def transform_data(self):
+        try:
+            # pprint.pprint(self.database)
+            dis = self.database['values_update']['value'][0]
+            theta = self.database['values_update']['value'][1]
+            dump_coils = list(self.database['control']['value'])
+            # rules
+            alpha = 1  # degree
+            dis_thres = 1000
+            dump_coils[0] = theta > alpha
+            dump_coils[1] = theta < -alpha
+            dump_coils[2] = not(dump_coils[0] or dump_coils[1])
+            dump_coils[3] = dis > dis_thres
+            dump_coils[4] = not dump_coils[3]
+            # write_plc
+            for i in range(len(dump_coils)):
+                self.database['control']['value'][i] = int(dump_coils[i])
+            # write to csv
+            df = pd.DataFrame.from_dict(self.database['control'])
+            df.to_csv('backup/control.csv', mode='w', index=False)
+            # print(df)
+
+        except Exception as e:
+            self.popup_msg(e, src_msg='transform_data', type_msg='warning')
+
         pass
 
     # ==========================================================================================================================/
@@ -258,6 +298,8 @@ class ModbusApp(Ui_MainWindow):
                 table_name = 'setpoints'
             elif mode == 'update':
                 table_name = 'values_update'
+            elif mode == 'control':
+                table_name = 'control'
             try:
                 values = self.database[table_name]['value']
                 types = self.database[table_name]['type']
@@ -365,11 +407,17 @@ class ModbusApp(Ui_MainWindow):
         k = random.sample(range(3, 10), 3)
         self.set_led_on(k, 'green')
 
+    def test_transfrom(self):
+        self.read_table_data('values_update')
+        self.read_table_data('control')
+        self.transform_data()
+
 
 def run():
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = ModbusApp(MainWindow=MainWindow)
+    # ui.test_transfrom()
     MainWindow.show()
     sys.exit(app.exec_())
 

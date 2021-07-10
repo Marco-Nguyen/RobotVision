@@ -1,0 +1,6 @@
+name,type,address,value
+left,coil,400,0
+right,coil,401,1
+center,coil,402,0
+forward,coil,403,0
+stop,coil,404,1

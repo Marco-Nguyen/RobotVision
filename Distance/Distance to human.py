@@ -1,8 +1,9 @@
-import cv2
-from realsense_depth import *
 import csv
+import cv2
 import numpy as np
 import tensorflow as tf
+
+from realsense_depth import *
 
 # Initialize
 focal = 875.81
@@ -49,10 +50,10 @@ class DetectorAPI:
         im_height, im_width, _ = image.shape
         boxes_list = [None for i in range(boxes.shape[1])]
         for i in range(boxes.shape[1]):
-            boxes_list[i] = (int(boxes[0,i,0] * im_height),
-                        int(boxes[0, i, 1] * im_width),
-                        int(boxes[0, i, 2] * im_height),
-                        int(boxes[0, i, 3] * im_width))
+            boxes_list[i] = (int(boxes[0, i, 0] * im_height),
+                             int(boxes[0, i, 1] * im_width),
+                             int(boxes[0, i, 2] * im_height),
+                             int(boxes[0, i, 3] * im_width))
 
         return boxes_list, scores[0].tolist(), [int(x) for x in classes[0].tolist()], int(num[0])
 
@@ -62,9 +63,9 @@ class DetectorAPI:
 
 
 def angle_calculation(x_c, y_c, x, y, dist):
-    hor_angle = np.arcsin(np.abs(x_c - x)/focal)*180/np.pi
-    ver_angle = np.arcsin(np.abs(y_c - y)/focal)*180/np.pi
-    dia_angle = np.arcsin(np.sqrt((x_c - x)**2 + (y_c - y)**2)/focal)*180/np.pi
+    hor_angle = np.arcsin(np.abs(x_c - x) / focal) * 180 / np.pi
+    ver_angle = np.arcsin(np.abs(y_c - y) / focal) * 180 / np.pi
+    dia_angle = np.arcsin(np.sqrt((x_c - x)**2 + (y_c - y)**2) / focal) * 180 / np.pi
     return hor_angle, ver_angle, dia_angle
 
 
@@ -72,7 +73,7 @@ def updateValue(line, dist, angle):
     temp_list = []
     line_to_override = {}
     # Read all data from the csv file.
-    with open('distance, angle update.csv', 'r') as b:
+    with open('Communication/ModbusRTU/backup/values_update.csv', 'r') as b:
         data = csv.reader(b)
         temp_list.extend(data)
 
@@ -83,29 +84,29 @@ def updateValue(line, dist, angle):
         line_to_override = {line: ['angle', 7, 'reg', angle]}
 
     # Write data to the csv file and replace the lines in the line_to_override dict.
-    with open('distance, angle update.csv', 'w', newline='') as f:
+    with open('Communication/ModbusRTU/backup/values_update.csv', 'w', newline='') as f:
         writer = csv.writer(f)
         for line, row in enumerate(temp_list):
             data = line_to_override.get(line, row)
             writer.writerow(data)
 
 
-def command(dis, ang, x):
-    if dis > 800:
-        cv2.putText(color_frame, "MOVE!", (20, 20),
-                    cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
-    else:
-        cv2.putText(color_frame, "STOP", (20, 20),
-                    cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
-    if ang > 20 and x > 640:
-        cv2.putText(color_frame, "TURN RIGHT", (20, 40),
-                    cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
-    elif ang > 20 and x < 640:
-        cv2.putText(color_frame, "TURN LEFT", (20, 40),
-                    cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
-    else:
-        cv2.putText(color_frame, "NO TURN", (20, 40),
-                    cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
+# def command(dis, ang, x):
+#     if dis > 800:
+#         cv2.putText(color_frame, "MOVE!", (20, 20),
+#                     cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
+#     else:
+#         cv2.putText(color_frame, "STOP", (20, 20),
+#                     cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
+#     if ang > 20 and x > 640:
+#         cv2.putText(color_frame, "TURN RIGHT", (20, 40),
+#                     cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
+#     elif ang > 20 and x < 640:
+#         cv2.putText(color_frame, "TURN LEFT", (20, 40),
+#                     cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
+#     else:
+#         cv2.putText(color_frame, "NO TURN", (20, 40),
+#                     cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
 
 
 if __name__ == "__main__":
@@ -113,30 +114,35 @@ if __name__ == "__main__":
     odapi = DetectorAPI(path_to_ckpt=model_path)
     threshold = 0.8
 
-    xc = 640
-    yc = 360
-
+    xc = 640 // 2
+    yc = 360 // 2
+    dist_array = []
+    distance = 0
     while True:
         ret, depth_frame, color_frame = dc.get_frame()
 
         boxes, scores, classes, num = odapi.processFrame(color_frame)
 
         # Visualization of the results of a detection.
-
+        prev_box = [0, 0, 1, 1]
         for i in range(len(boxes)):
             # Class 1 represents human
             if classes[i] == 1 and scores[i] > threshold:
                 box = boxes[i]
                 cv2.rectangle(color_frame, (box[1], box[0]), (box[3], box[2]), (0, 0, 255), 2)
-                x_c_human = np.abs(int(box[1] + (box[3] - box[1])/2))
-                y_c_human = np.abs(int(box[0] + (box[2] - box[0])/2))
-                distance = depth_frame[y_c_human, x_c_human]
+                x_c_human = np.abs(int(box[1] + (box[3] - box[1]) / 2))
+                y_c_human = np.abs(int(box[0] + (box[2] - box[0]) / 2))
+                dist = depth_frame[y_c_human, x_c_human]
+                dist_array.append(dist)
+                if len(dist_array) == 7:
+                    distance = np.average(dist_array)
+                    dist_array = []
                 ha, va, da = angle_calculation(xc, yc, x_c_human, y_c_human, distance)
-                command(distance, ha, x_c_human)
-                cv2.putText(color_frame, "{}mm".format(distance), (20, 650),
-                            cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
-                cv2.putText(color_frame, "Angle: {}".format(ha), (20, 700),
-                            cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 0, 255), 2)
+                # command(distance, ha, x_c_human)
+                cv2.putText(color_frame, "{:.2f}mm".format(distance), (box[1] + 20, box[0] + 20),
+                            cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
+                cv2.putText(color_frame, "Angle: {:.2f}".format(ha), (box[1] + 20, box[0] + 40),
+                            cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
                 updateValue(4, distance, ha)
                 updateValue(5, distance, ha)
 
@@ -144,6 +150,3 @@ if __name__ == "__main__":
         key = cv2.waitKey(1)
         if key & 0xFF == ord('q'):
             break
-
-
-
