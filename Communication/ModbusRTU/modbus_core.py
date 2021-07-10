@@ -76,8 +76,8 @@ class ModbusApp(Ui_MainWindow):
         """
         try:
             PATH = f'backup/{table_name}.{format_}'
-            if os.path.is_file(PATH):
-                data = pd.read_csv()
+            if os.path.isfile(PATH):
+                data = pd.read_csv(PATH)
                 self.database[table_name]['name'] = list(data['name'])
                 self.database[table_name]['type'] = list(data['type'])
                 self.database[table_name]['address'] = list(data['address'])
@@ -155,6 +155,7 @@ class ModbusApp(Ui_MainWindow):
         """initialize the table widget to the tracking table in UI widget.
         """
         try:
+            self.check_set_values()
             _translate = QtCore.QCoreApplication.translate
             self.read_table_data('trackdevice')
             table = self.trackingTable
@@ -192,18 +193,9 @@ class ModbusApp(Ui_MainWindow):
         """connect to the start button, if pressed, run the writting to PLC and updating tracking table contiunously.
         """
         correction_value = 0  # delay time
-        sr_default = True
-        try:
-            self.sr = float(self.samplingRate.text())
-            sr_default = False
-        except Exception:
-            pass
         try:
             if self.connected:
-                if sr_default:
-                    self.sr = 0.14   # how many second read again
-                    self.samplingRate.setText(
-                        QtCore.QCoreApplication.translate("MainWindow", f'{self.sr}'))
+                self.check_set_values()
                 self.sr = int((self.sr - correction_value) * 1000)
                 print("SamplingRate: ", self.sr)  # change to miliseconds
                 self.running = True
@@ -262,27 +254,59 @@ class ModbusApp(Ui_MainWindow):
         pass
     # ==========================================================================================================================/
 
-    def transform_data(self):
-        # transform values from update csv file to coil state with the define rules
+    def check_set_values(self):
+        """Check all set values in all lineEdit if they are not set, set bay defined values
+        """
+        sr_default = True
+        set_alpha, set_dis = False, False
         try:
-            # pprint.pprint(self.database)
+            self.alpha = float(self.minAlpha.text())
+            set_alpha = True
+        except Exception:
+            pass
+
+        try:
+            self.dis_thres = float(self.minDistance.text())
+            set_dis = True
+        except Exception:
+            pass
+
+        try:
+            self.sr = float(self.samplingRate.text())
+            sr_default = False
+        except Exception:
+            pass
+
+        if not set_alpha:
+            self.alpha = 5   # degrees
+            self.minAlpha.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.alpha} degrees'))
+
+        if not set_dis:
+            self.dis_thres = 1000   # milimeters
+            self.minDistance.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.dis_thres} mm'))
+
+        if sr_default:
+            self.sr = 0.14   # how many second read again
+            self.samplingRate.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.sr} seconds'))
+
+    def transform_data(self):
+        """transform values from update csv file to coil state with the define rules"""
+        try:
+            self.check_set_values()
             dis = self.database['values_update']['value'][0]
             theta = self.database['values_update']['value'][1]
             dump_coils = list(self.database['control']['value'])
             # rules
-            alpha = 1  # degree
-            dis_thres = 1000
-            dump_coils[0] = theta > alpha
-            dump_coils[1] = theta < -alpha
+            dump_coils[0] = theta > self.alpha
+            dump_coils[1] = theta < -self.alpha
             dump_coils[2] = not(dump_coils[0] or dump_coils[1])
-            dump_coils[3] = dis > dis_thres
+            dump_coils[3] = dis > self.dis_thres
             dump_coils[4] = not dump_coils[3]
             # write_plc
             for i in range(len(dump_coils)):
                 self.database['control']['value'][i] = int(dump_coils[i])
             # write to csv
             self.write_table_data(table_name='control', format_='csv')
-            # print(df)
 
         except Exception as e:
             self.popup_msg(e, src_msg='transform_data', type_msg='warning')
@@ -314,24 +338,26 @@ class ModbusApp(Ui_MainWindow):
                 table_name = 'values_update'
             elif mode == 'control':
                 table_name = 'control'
+            else:
+                pass
+
             try:
-                values = self.database[table_name]['value']
-                types = self.database[table_name]['type']
-                address = self.database[table_name]['address']
+                values = list(self.database[table_name]['value'])
+                types = list(self.database[table_name]['type'])
+                address = list(self.database[table_name]['address'])
             except Exception as e:
                 self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='warning')
             # print(values, types, address)
             try:
-                if not any(len(x) == 0 for x in [values, types, address]):
-                    for v, a, t in zip(values, address, types):
-                        if t == 'coil':
-                            v = 1 if int(v) != 0 else 0
-                            plc.write_single_coil(a, v)
-                        elif t == 'reg':
-                            v = int(v)
-                            plc.write_single_register(a, v)
-                        else:
-                            print('wrong types')
+                for v, a, t in zip(values, address, types):
+                    if t == 'coil':
+                        v = 1 if int(v) != 0 else 0
+                        plc.write_single_coil(a, v)
+                    elif t == 'reg':
+                        v = int(v)
+                        plc.write_single_register(a, v)
+                    else:
+                        print('wrong types')
                 else:
                     self.popup_msg(msg='database is empty', src_msg='write_to_PLC', type_msg='infor')
                     self.connected = False
