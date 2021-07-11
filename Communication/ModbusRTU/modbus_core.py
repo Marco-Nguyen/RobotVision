@@ -3,7 +3,6 @@ from easymodbus.modbusClient import ModbusClient
 
 import os
 import pandas as pd
-import pprint
 import random
 import sys
 import time
@@ -11,25 +10,26 @@ import time
 from GUI.modbus_gui_lite import Ui_MainWindow
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem
 
 
-class ModbusApp(Ui_MainWindow):
+class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
     def __init__(self, MainWindow):
         super().__init__()
         self.setupUi(MainWindow)
 
         self.connected = False
         self.is_error = False
+        self.is_init_table = True
 
         self.connectButton.clicked.connect(self.connect_app)
-        self.resetValues.clicked.connect(self.reset_set_table)
-        self.Watch.clicked.connect(self.init_tracking_table)
+        self.set_all_values.clicked.connect(self.update_all_values)
         self.startRunning.clicked.connect(self.start_running)
         self.stopRunning.clicked.connect(self.stop_running)
-        self.read1time.clicked.connect(self.update_set_value)
         self.read1time.clicked.connect(self.update_tracking_table)
+        self.openFiles.clicked.connect(self.open_files)
 
         self.set_random()
         # time for the reading step
@@ -61,12 +61,25 @@ class ModbusApp(Ui_MainWindow):
             self.popup.setText(f"[{type_msg.upper()}] -> From: {src_msg}\nDetails: {msg}")
             self.popup.setStandardButtons(QMessageBox.Ok)
             self.popup.exec_()
-            print('>>', msg)
+            print(f'[{type_msg.upper()}]: {msg} from {src_msg}')
         except Exception as e:
             print('-> From: popup_msg', e)
         pass
     # ==========================================================================================================================/
-    # read and write to database format using pandas
+
+    def open_files(self):
+        """open file when pressing edit files
+        """
+        try:
+            filename = QFileDialog.getOpenFileNames(self, caption='Open File', directory='backup')
+            for file in list(filename[0]):
+                f = os.path.join("backup/", os.path.split(file)[1])
+                # print(filename)
+                command = f'notepad.exe {f}'
+                os.system(command)
+        except Exception as e:
+            self.popup_msg(e, src_msg='open file', type_msg='infor')
+        # read and write to database format using pandas
 
     def read_table_data(self, table_name, format_='csv'):
         """Read data from csv file and save in the database
@@ -103,10 +116,23 @@ class ModbusApp(Ui_MainWindow):
                 df.to_pickle(PATH, index=False)
         except Exception as e:
             self.popup_msg(e, src_msg='write_table_data')
-        pass
-    # ==========================================================================================================================/
+
+    # ========================================================table display handling==================================================================/
+
+    def update_all_values(self):
+        """init all table and values when pressing set values
+        """
+        self.check_set_values()
+        if self.is_init_table:
+            self.set_set_table(mode='init')
+            self.set_tracking_table(mode='init')
+            self.is_init_table = False
+        else:
+            self.set_set_table()
+            self.set_tracking_table()
 
     # setpoints blocks
+
     def update_set_value(self):
         """update value from the set table in UI to the database
         """
@@ -124,45 +150,49 @@ class ModbusApp(Ui_MainWindow):
         except Exception as e:
             self.popup_msg(e, src_msg='update_set_value')
 
-    def reset_set_table(self):
+    def set_set_table(self, mode='update'):
         """read data from the setpoints csv file and update the table widget
         """
         try:
-            _translate = QtCore.QCoreApplication.translate
-            # reset table
             table = self.setValueTable
-            nrows = table.rowCount()
-            for i in range(nrows):
-                table.verticalHeaderItem(i).setText(_translate("MainWindow", "newRow"))  # set name
 
-            table.clearContents()
+            if mode != 'init':
+                # reset table
+                nrows = table.rowCount()
+                table.setVerticalHeaderLabels(tuple(["newRow"] * nrows))  # set name
+                table.clearContents()
 
             # update data
             self.read_table_data('setpoints')
-            # print(len(self.database['setpoints']['name']))
+            self.check_if_expanding('setpoints')
+
             for i in range(len(self.database['setpoints']['name'])):
-                table.verticalHeaderItem(i).setText(_translate(
-                    "MainWindow", self.database['setpoints']['name'][i]))  # set name
+                table.setVerticalHeaderItem(i, QtWidgets.QTableWidgetItem(self.database['setpoints']['name'][i]))
                 table.setItem(i, 0, QTableWidgetItem(
                     f"{self.database['setpoints']['type'][i]}"))
                 table.setItem(i, 1, QTableWidgetItem(
                     f"{self.database['setpoints']['value'][i]}"))
         except Exception as e:
-            self.popup_msg(e, src_msg='reset_set_table')
+            self.popup_msg(e, src_msg='set_set_table')
 
     # tracking block
-    def init_tracking_table(self):
+    def set_tracking_table(self, mode='update'):
         """initialize the table widget to the tracking table in UI widget.
         """
         try:
-            self.check_set_values()
-            _translate = QtCore.QCoreApplication.translate
+            table = self.trackingTable
+            if mode != 'init':
+                # reset table
+                nrows = table.rowCount()
+                table.setVerticalHeaderLabels(tuple(["newRow"] * nrows))  # set name
+                table.clearContents()
+
             self.read_table_data('trackdevice')
+            self.check_if_expanding('trackdevice')
             table = self.trackingTable
             # update name and type of tracking params
             for i in range(len(self.database['trackdevice']['name'])):
-                table.verticalHeaderItem(i).setText(_translate(
-                    "MainWindow", f"{self.database['trackdevice']['name'][i].upper()}"))  # set name
+                table.setVerticalHeaderItem(i, QtWidgets.QTableWidgetItem(self.database['trackdevice']['name'][i]))  # set name
                 table.setItem(i, 0, QTableWidgetItem(
                     f"{self.database['trackdevice']['type'][i]}"))
             print('init tracking table done')
@@ -186,8 +216,25 @@ class ModbusApp(Ui_MainWindow):
         except Exception as e:
             self.popup_msg(e, src_msg='update_tracking_table')
 
-    # =================================================================================================================================/
-    # run contiunous block
+    def check_if_expanding(self, table_name):
+        """check whether we need more rows to display database
+        """
+        try:
+            if table_name == 'setpoints':
+                table = self.setValueTable
+            elif table_name == 'trackdevice':
+                table = self.trackingTable
+            n_rows = table.rowCount()
+            data_length = len(self.database[table_name]['name'])
+            gap = data_length - n_rows
+            if gap > 0:
+                for i in range(n_rows, data_length):
+                    table.insertRow(i)
+
+        except Exception as e:
+            self.popup_msg(e, src_msg='check_if_expanding', type_msg='error')
+
+    # ==========================================================run contiunous block===============================================================/
 
     def start_running(self):
         """connect to the start button, if pressed, run the writting to PLC and updating tracking table contiunously.
@@ -240,6 +287,7 @@ class ModbusApp(Ui_MainWindow):
 
     def _writing(self):
         """get value from csv update value and write to PLC
+        read 2 csv file transfrom data from 2 values distance and theta to coil state, save to control csv and write from that csv to plc
         """
         try:
             if self.connected:
@@ -292,7 +340,6 @@ class ModbusApp(Ui_MainWindow):
     def transform_data(self):
         """transform values from update csv file to coil state with the define rules"""
         try:
-            self.check_set_values()
             dis = self.database['values_update']['value'][0]
             theta = self.database['values_update']['value'][1]
             dump_coils = list(self.database['control']['value'])
@@ -302,7 +349,7 @@ class ModbusApp(Ui_MainWindow):
             dump_coils[2] = not(dump_coils[0] or dump_coils[1])
             dump_coils[3] = dis > self.dis_thres
             dump_coils[4] = not dump_coils[3]
-            # write_plc
+            # change values in  database
             for i in range(len(dump_coils)):
                 self.database['control']['value'][i] = int(dump_coils[i])
             # write to csv
@@ -313,8 +360,7 @@ class ModbusApp(Ui_MainWindow):
 
         pass
 
-    # ==========================================================================================================================/
-    # reading and writing to PLC
+    # ===============================================reading and writing to PLC=========================================================/
 
     def write_to_PLC(self, mode='init'):
         """Connect to PLC and write data to PLC based on mode defined
@@ -328,6 +374,7 @@ class ModbusApp(Ui_MainWindow):
         values, types, address = [], [], []
         try:
             plc = ModbusClient(f'COM{self.com_set}')
+            plc.__baudrate = self.baudrate_set
             if not plc.is_connected():
                 plc.connect()
             self.connected = True
@@ -380,6 +427,7 @@ class ModbusApp(Ui_MainWindow):
         """
         try:
             plc = ModbusClient(f'COM{self.com_set}')
+            plc.__baudrate = self.baudrate_set
             if not plc.is_connected():
                 plc.connect()
             if type_.strip() == 'hr':
@@ -393,7 +441,7 @@ class ModbusApp(Ui_MainWindow):
         except Exception as e:
             self.popup_msg(e, src_msg='read_from_PLC')
 
-    # connect block
+    # ====================================================== connect block=========================================/
     def connect_app(self):
         """connect to the com port with com set and baud rate selected in UI"""
         try:
@@ -402,8 +450,10 @@ class ModbusApp(Ui_MainWindow):
             try:
                 # connect plc
                 plc = ModbusClient(f'COM{self.com_set}')
+                plc.__baudrate = self.baudrate_set
                 if not plc.is_connected():
                     plc.connect()
+
                 self.connected = True
                 # update values from set value table and write to plc
 
@@ -447,17 +497,11 @@ class ModbusApp(Ui_MainWindow):
         k = random.sample(range(3, 10), 3)
         self.set_led_on(k, 'green')
 
-    def test_transfrom(self):
-        self.read_table_data('values_update')
-        self.read_table_data('control')
-        self.transform_data()
-
 
 def run():
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = ModbusApp(MainWindow=MainWindow)
-    # ui.test_transfrom()
     MainWindow.show()
     sys.exit(app.exec_())
 
