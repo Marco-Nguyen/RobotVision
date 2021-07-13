@@ -1,0 +1,9 @@
+name,address,type,value
+d1,1,coil,1
+d2,2,coil,0
+d3,3,coil,1
+dis,6,reg,-658.2979684664713
+angle,7,reg,6.095582928346945
+d4,4,coil,0
+d5,5,coil,1
+d6,6,coil,1

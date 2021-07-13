@@ -213,6 +213,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                     values = self.read_from_PLC(
                         self.database['trackdevice']['type'][i], idx)
                     table.setItem(i, 1, QTableWidgetItem(f"{values}"))
+                    
             else:
                 self.popup_msg("Com is not connect", src_msg='update_tracking_table', type_msg='warning')
         except Exception as e:
@@ -316,7 +317,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
             pass
 
         try:
-            self.dis_thres = float(self.minDistance.text())
+            self.dis_thresh = float(self.minDistance.text())
             set_dis = True
         except Exception:
             pass
@@ -332,8 +333,8 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
             self.minAlpha.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.alpha} degrees'))
 
         if not set_dis:
-            self.dis_thres = 1000   # milimeters
-            self.minDistance.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.dis_thres} mm'))
+            self.dis_thresh = 1000   # millimeters
+            self.minDistance.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.dis_thresh} mm'))
 
         if sr_default:
             self.sr = 0.14   # how many second read again
@@ -349,7 +350,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
             dump_coils[0] = theta > self.alpha
             dump_coils[1] = theta < -self.alpha
             dump_coils[2] = not(dump_coils[0] or dump_coils[1])
-            dump_coils[3] = dis > self.dis_thres
+            dump_coils[3] = dis > self.dis_thresh
             dump_coils[4] = not dump_coils[3]
             # change values in  database
             for i in range(len(dump_coils)):
