@@ -6,4 +6,6 @@ forward,403,coil
 stop,404,coil
 D1001,1001,reg
 D1002,1002,reg
+m11,11,coil
+m12,12,coil
 

@@ -124,6 +124,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         """
         self.check_set_values()
         if self.is_init_table:
+            print('init')
             self.set_set_table(mode='init')
             self.set_tracking_table(mode='init')
             self.is_init_table = False
@@ -138,6 +139,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         """
         try:
             table = self.setValueTable
+            # print(table)
             nrows = table.rowCount()
             for i in range(nrows):
                 if not isinstance(table.item(i, 0), type(None)):
@@ -374,7 +376,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         values, types, address = [], [], []
         try:
             plc = ModbusClient(f'COM{self.com_set}')
-            plc.__baudrate = self.baudrate_set
+            #plc.__baudrate = self.baudrate_set
             if not plc.is_connected():
                 plc.connect()
             self.connected = True
@@ -393,7 +395,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                 types = list(self.database[table_name]['type'])
                 address = list(self.database[table_name]['address'])
             except Exception as e:
-                self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='warning')
+                self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='infor')
             # print(values, types, address)
             try:
                 for v, a, t in zip(values, address, types):
@@ -405,13 +407,11 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                         plc.write_single_register(a, v)
                     else:
                         print('wrong types')
-                else:
-                    self.popup_msg(msg='database is empty', src_msg='write_to_PLC', type_msg='infor')
-                    self.connected = False
+                print(f"write {mode} done")
             except Exception as e:
                 self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='warning')
                 self.connected = False
-            print(f"write {mode} done")
+
         except Exception as e:
             self.popup_msg(e, src_msg='write_to_PLC')
 
@@ -427,7 +427,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         """
         try:
             plc = ModbusClient(f'COM{self.com_set}')
-            plc.__baudrate = self.baudrate_set
+            #plc.__baudrate = self.baudrate_set
             if not plc.is_connected():
                 plc.connect()
             if type_.strip() == 'hr':
@@ -450,11 +450,13 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
             try:
                 # connect plc
                 plc = ModbusClient(f'COM{self.com_set}')
-                plc.__baudrate = self.baudrate_set
+                # plc.__baudrate = self.baudrate_set
                 if not plc.is_connected():
                     plc.connect()
+                    print("is connected")
 
                 self.connected = True
+
                 # update values from set value table and write to plc
 
                 plc.close()

@@ -38,8 +38,8 @@ class ModbusApp(Ui_MainWindow):
         self.is_error = False
 
         self.connectButton.clicked.connect(self.connect_app)
-        self.resetValues.clicked.connect(self.reset_set_table)
-        self.Watch.clicked.connect(self.init_tracking_table)
+        self.set_all_values.clicked.connect(self.reset_set_table)
+        # self.Watch.clicked.connect(self.init_tracking_table)
         self.startRunning.clicked.connect(self.start_running)
         self.stopRunning.clicked.connect(self.stop_running)
         self.read1time.clicked.connect(self.update_set_value)
