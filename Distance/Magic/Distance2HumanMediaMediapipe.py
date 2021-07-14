@@ -18,7 +18,7 @@ while True:
         mpDraw.draw_landmarks(frame, results.pose_landmarks, mpPose.POSE_CONNECTIONS)
         for id, lm in enumerate(results.pose_landmarks.landmark):
             h, w, c = frame.shape
-            print(id, lm)
+            # print(id, lm)
             cx, cy = int(lm.x * w), int(lm.y * h)
             cv2.circle(frame, (cx, cy), 2, (255, 0, 0), -1)
 

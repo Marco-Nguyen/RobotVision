@@ -14,6 +14,8 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem
 
+MMM = 0
+
 
 class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
     def __init__(self, MainWindow):
@@ -46,7 +48,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         Args:
             msg (str): message you want to show to the popup window
             src_msg (str, optional): source of the message. Defaults to ''.
-            type_msg (str, optional): type of popup. Available: warning, error, infor. Defaults to 'error'.
+            type_msg (str, optional): type of popup. Available: warning, error, information. Defaults to 'error'.
         """
         try:
             self.popup = QMessageBox()
@@ -55,7 +57,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
             elif type_msg.lower() == 'error':
                 self.popup.setIcon(QMessageBox.Critical)
                 self.is_error = True
-            elif type_msg.lower() == 'infor':
+            elif type_msg.lower() == 'info':
                 self.popup.setIcon(QMessageBox.Information)
 
             self.popup.setText(f"[{type_msg.upper()}] -> From: {src_msg}\nDetails: {msg}")
@@ -78,7 +80,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                 command = f'notepad.exe {f}'
                 os.system(command)
         except Exception as e:
-            self.popup_msg(e, src_msg='open file', type_msg='infor')
+            self.popup_msg(e, src_msg='open file', type_msg='info')
         # read and write to database format using pandas
 
     def read_table_data(self, table_name, format_='csv'):
@@ -98,7 +100,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                     self.database[table_name]['value'] = list(data['value'])
                 print(f'read {format_} from {table_name}.{format_} done')
             else:
-                self.popup_msg(f'{table_name}.{format_} not found', src_msg='read_table_data', type_msg='infor')
+                self.popup_msg(f'{table_name}.{format_} not found', src_msg='read_table_data', type_msg='info')
                 print(f'{table_name}.{format_} not found')
                 pass
 
@@ -213,7 +215,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                     values = self.read_from_PLC(
                         self.database['trackdevice']['type'][i], idx)
                     table.setItem(i, 1, QTableWidgetItem(f"{values}"))
-                    
+
             else:
                 self.popup_msg("Com is not connect", src_msg='update_tracking_table', type_msg='warning')
         except Exception as e:
@@ -396,7 +398,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                 types = list(self.database[table_name]['type'])
                 address = list(self.database[table_name]['address'])
             except Exception as e:
-                self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='infor')
+                self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='info')
             # print(values, types, address)
             try:
                 for v, a, t in zip(values, address, types):

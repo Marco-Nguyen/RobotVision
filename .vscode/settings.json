@@ -1,6 +1,8 @@
 {
-    "python.pythonPath": "C:\\Python38\\python.exe",
-    "python.analysis.extraPaths": [
-        "./Communication/ModbusRTU"
-    ]
+  "python.pythonPath": "C:\\Python38\\python.exe",
+  "python.analysis.extraPaths": [
+    "./Communication/ModbusRTU",
+    "./Distance",
+    "./Human_tracking/src"
+  ]
 }
