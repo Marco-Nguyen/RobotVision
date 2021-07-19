@@ -1,6 +1,7 @@
 from threading import Thread
 
 import cv2
+
 from imutils.video import FPS
 
 
@@ -62,10 +63,6 @@ def threadBoth(source=0):
             break
 
         frame = video_getter.frame
-        # output_img, cond = myYolo.detector(frame, 0.3, 0.5, delay)
-        # if cond:
-        #     delay = delay + 1 if delay <= 3 else 0
-        cv2.putText(frame, f'{fps.fps()}', (0, 0 +20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, [0,255,255], 1, lineType=cv2.LINE_AA)
         video_shower.frame = frame
         fps.update()
     fps.stop()

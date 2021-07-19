@@ -1,20 +1,18 @@
-from easymodbus.modbusClient import ModbusClient
-
-
 import os
-import pandas as pd
 import random
 import sys
 import time
 
-from GUI.modbus_gui_lite import Ui_MainWindow
+import pandas as pd
+
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QTableWidgetItem
+from easymodbus.modbusClient import ModbusClient
 
-MMM = 0
+from GUI.modbus_gui_lite import Ui_MainWindow
 
 
 class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
@@ -25,6 +23,8 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         self.connected = False
         self.is_error = False
         self.is_init_table = True
+        self.is_auto = True
+        self.is_rtu = True
 
         self.connectButton.clicked.connect(self.connect_app)
         self.set_all_values.clicked.connect(self.update_all_values)
@@ -32,6 +32,18 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         self.stopRunning.clicked.connect(self.stop_running)
         self.read1time.clicked.connect(self.update_tracking_table)
         self.openFiles.clicked.connect(self.open_files)
+
+        # control block
+        self.ctrl_left_button.clicked.connect(self.turn_left)
+        self.ctrl_right_button.clicked.connect(self.turn_right)
+        self.ctrl_forward_button.clicked.connect(self.move_forward)
+        self.ctrl_backward_button.clicked.connect(self.move_backward)
+        self.ctrl_stop_button.clicked.connect(self.stop_moving)
+        # select block
+        self.auto_mode.toggled.connect(self.select_auto)
+        self.manual_mode.toggled.connect(self.select_manual)
+        self.tcp_mode.toggled.connect(self.select_tcp)
+        self.rtu_mode.toggled.connect(self.select_rtu)
 
         self.set_random()
         # time for the reading step
@@ -41,6 +53,10 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                          'trackdevice': {},
                          'values_update': {},
                          'control': {}}
+        self.settings = {'minAlpha': 5,
+                         'minDis': 1000,
+                         'samplingRate': 0.14,
+                         'movement': {}}
 
     def popup_msg(self, msg, src_msg='', type_msg='error'):
         """Create popup window to the ui
@@ -92,19 +108,23 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         try:
             PATH = f'backup/{table_name}.{format_}'
             if os.path.isfile(PATH):
-                data = pd.read_csv(PATH)
-                self.database[table_name]['name'] = list(data['name'])
-                self.database[table_name]['type'] = list(data['type'])
-                self.database[table_name]['address'] = list(data['address'])
-                if table_name != 'trackdevice':
-                    self.database[table_name]['value'] = list(data['value'])
+                if format_ == 'csv':
+                    data = pd.read_csv(PATH)
+                if table_name != 'movement':
+                    self.database[table_name]['name'] = list(data['name'])
+                    self.database[table_name]['type'] = list(data['type'])
+                    self.database[table_name]['address'] = list(data['address'])
+                    if table_name != 'trackdevice':
+                        self.database[table_name]['value'] = list(data['value'])
+                else:
+                    for i in range(len(list(data['name']))):
+                        self.settings[table_name][data['name'][i]] = [data['type'][i], data['address'][i]]
+
                 print(f'read {format_} from {table_name}.{format_} done')
+
             else:
                 self.popup_msg(f'{table_name}.{format_} not found', src_msg='read_table_data', type_msg='info')
                 print(f'{table_name}.{format_} not found')
-                pass
-
-            # pprint.pprint(self.database)
         except Exception as e:
             self.popup_msg(e, src_msg="read_table_data")
 
@@ -119,11 +139,26 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         except Exception as e:
             self.popup_msg(e, src_msg='write_table_data')
 
+    def import_settings(self):
+        try:
+            with open('backup/settings.txt', 'r') as f:
+                settings = f.readlines()
+
+            for line in settings:
+                data = line.strip().split(' ')
+                self.settings[data[0]] = float(data[1])
+
+            self.read_table_data('movement')
+
+        except Exception as e:
+            self.popup_msg(e, src_msg='import settings')
+
     # ========================================================table display handling==================================================================/
 
     def update_all_values(self):
         """init all table and values when pressing set values
         """
+        self.import_settings()
         self.check_set_values()
         if self.is_init_table:
             print('init')
@@ -244,17 +279,17 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
     def start_running(self):
         """connect to the start button, if pressed, run the writting to PLC and updating tracking table contiunously.
         """
-        correction_value = 0  # delay time
+        correction_value = 0.14  # delay time
         try:
             if self.connected:
                 self.check_set_values()
-                self.sr = int((self.sr - correction_value) * 1000)
-                print("SamplingRate: ", self.sr)  # change to miliseconds
+                self.sr = int((self.self.settings['samplingRate'] - correction_value) * 1000)
+                print("SamplingRate: ", self.self.settings['samplingRate'])  # change to miliseconds
                 self.running = True
                 # run timer to read and write each sample time
                 if not self.is_error:
                     self.timer.timeout.connect(self._running)
-                    self.timer.start(self.sr)
+                    self.timer.start(self.self.settings['samplingRate'])
             else:
                 self.popup_msg("Com is not connect", src_msg='start_running', type_msg='warning')
         except Exception as e:
@@ -305,42 +340,90 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         except Exception as e:
             self.popup_msg(e, src_msg='_writing')
         pass
+    # ==========================================================run selecting block===============================================================/
+
+    def select_auto(self, selected):
+        if selected:
+            self.is_auto = True
+            print(">> Automatically mode:", self.is_auto)
+
+    def select_manual(self, selected):
+        if selected:
+            self.is_auto = False
+            print(">> Automatically mode:", self.is_auto)
+
+    def select_tcp(self, selected):
+        if selected:
+            self.is_rtu = False
+            print(">> Connecting by RTU:", self.is_rtu)
+
+    def select_rtu(self, selected):
+        if selected:
+            self.is_rtu = True
+            print(">> Connecting by RTU:", self.is_rtu)
+
+    # ==========================================================run controller block===============================================================/
+
+    def move_forward(self):
+        if not self.is_auto:
+            t = self.settings['movement']['forward'][0]
+            a = self.settings['movement']['forward'][1]
+            v = 1
+            self.write_to_PLC_core(t, a, v)
+
+    def move_backward(self):
+        if not self.is_auto:
+            t = self.settings['movement']['backward'][0]
+            a = self.settings['movement']['backward'][1]
+            v = 1
+            self.write_to_PLC_core(t, a, v)
+
+    def turn_left(self):
+        if not self.is_auto:
+            t = self.settings['movement']['left'][0]
+            a = self.settings['movement']['left'][1]
+            v = 1
+            self.write_to_PLC_core(t, a, v)
+
+    def turn_right(self):
+        if not self.is_auto:
+            t = self.settings['movement']['right'][0]
+            a = self.settings['movement']['right'][1]
+            v = 1
+            self.write_to_PLC_core(t, a, v)
+
+    def stop_moving(self):
+        if not self.is_auto:
+            for move in self.settings['movement']:
+                t = move[0]
+                a = move[1]
+                v = 0
+                self.write_to_PLC_core(t, a, v)
     # ==========================================================================================================================/
 
     def check_set_values(self):
-        """Check all set values in all lineEdit if they are not set, set bay defined values
+        """Check all set values in all lineEdit if they are not set, set by defined values
         """
-        sr_default = True
-        set_alpha, set_dis = False, False
+        ip_default = True
+        port_default = True
+
         try:
-            self.alpha = float(self.minAlpha.text())
-            set_alpha = True
+            self.tcp_ip = str(self.ipAddress.text())
+            ip_default = False
+        except Exception:
+            pass
+        try:
+            self.port_set = str(self.Port.text())
+            port_default = False
         except Exception:
             pass
 
-        try:
-            self.dis_thresh = float(self.minDistance.text())
-            set_dis = True
-        except Exception:
-            pass
-
-        try:
-            self.sr = float(self.samplingRate.text())
-            sr_default = False
-        except Exception:
-            pass
-
-        if not set_alpha:
-            self.alpha = 5   # degrees
-            self.minAlpha.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.alpha} degrees'))
-
-        if not set_dis:
-            self.dis_thresh = 1000   # millimeters
-            self.minDistance.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.dis_thresh} mm'))
-
-        if sr_default:
-            self.sr = 0.14   # how many second read again
-            self.samplingRate.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.sr} seconds'))
+        if ip_default:
+            self.tcp_ip = '127.0.0.1'
+            self.ipAddress.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.tcp_ip}'))
+        if port_default:
+            self.port_set = '502'
+            self.ipAddress.setText(QtCore.QCoreApplication.translate("MainWindow", f'{self.port_set}'))
 
     def transform_data(self):
         """transform values from update csv file to coil state with the define rules"""
@@ -349,10 +432,10 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
             theta = self.database['values_update']['value'][1]
             dump_coils = list(self.database['control']['value'])
             # rules
-            dump_coils[0] = theta > self.alpha
-            dump_coils[1] = theta < -self.alpha
+            dump_coils[0] = theta > self.settings['minAlpha']
+            dump_coils[1] = theta < -self.settings['minAlpha']
             dump_coils[2] = not(dump_coils[0] or dump_coils[1])
-            dump_coils[3] = dis > self.dis_thresh
+            dump_coils[3] = dis > self.self.settings['minDis']
             dump_coils[4] = not dump_coils[3]
             # change values in  database
             for i in range(len(dump_coils)):
@@ -362,10 +445,32 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
 
         except Exception as e:
             self.popup_msg(e, src_msg='transform_data', type_msg='warning')
-
         pass
 
     # ===============================================reading and writing to PLC=========================================================/
+    def write_to_PLC_core(self, type_, address, value):
+        try:
+            #  check connection
+            try:
+                if self.is_rtu:
+                    plc = ModbusClient(f'COM{self.com_set}')
+                else:
+                    plc = ModbusClient(self.tcp_ip, self.port_set)
+            except Exception as e:
+                print("Error", e)
+            if not plc.is_connected():
+                plc.connect()
+            if plc.is_connected():
+                print("PlC is connected, writing_time")
+                self.connected = True
+
+            if type_ == 'coil':
+                plc.write_single_coil(address, value)
+            elif type_ == 'reg':
+                plc.write_single_register(address, value)
+        except Exception as e:
+            self.popup_msg(msg=e, src_msg='write_to_PLC_core', type_msg='warning')
+            self.connected = False
 
     def write_to_PLC(self, mode='init'):
         """Connect to PLC and write data to PLC based on mode defined
@@ -378,11 +483,6 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         """
         values, types, address = [], [], []
         try:
-            plc = ModbusClient(f'COM{self.com_set}')
-            #plc.__baudrate = self.baudrate_set
-            if not plc.is_connected():
-                plc.connect()
-            self.connected = True
 
             if mode == 'init':
                 table_name = 'setpoints'
@@ -390,8 +490,6 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
                 table_name = 'values_update'
             elif mode == 'control':
                 table_name = 'control'
-            else:
-                pass
 
             try:
                 values = list(self.database[table_name]['value'])
@@ -402,14 +500,7 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
             # print(values, types, address)
             try:
                 for v, a, t in zip(values, address, types):
-                    if t == 'coil':
-                        v = 1 if int(v) != 0 else 0
-                        plc.write_single_coil(a, v)
-                    elif t == 'reg':
-                        v = int(v)
-                        plc.write_single_register(a, v)
-                    else:
-                        print('wrong types')
+                    self.write_to_PLC_core(t, a, v)
                 print(f"write {mode} done")
             except Exception as e:
                 self.popup_msg(msg=e, src_msg='write_to_PLC', type_msg='warning')
@@ -429,8 +520,11 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
             [list]: list of results
         """
         try:
-            plc = ModbusClient(f'COM{self.com_set}')
-            #plc.__baudrate = self.baudrate_set
+            if self.is_rtu:
+                plc = ModbusClient(f'COM{self.com_set}')
+            else:
+                plc = ModbusClient(self.tcp_ip, self.port_set)
+
             if not plc.is_connected():
                 plc.connect()
             if type_.strip() == 'hr':
@@ -450,33 +544,31 @@ class ModbusApp(Ui_MainWindow, QtWidgets.QWidget):
         try:
             self.com_set = self.spinBox.value()
             self.baudrate_set = self.comboBox.currentText()
-            try:
-                # connect plc
+            self.check_set_values()
+            # connect plc
+            if self.is_rtu:
                 plc = ModbusClient(f'COM{self.com_set}')
-                # plc.__baudrate = self.baudrate_set
-                if not plc.is_connected():
-                    plc.connect()
-                    print("is connected")
-
+                msg = f"COM{self.com_set} at {self.baudrate_set}"
+            else:
+                plc = ModbusClient(self.tcp_ip, self.port_set)
+                msg = f"IP: {self.tcp_ip} //Port: {self.port_set}"
+            if not plc.is_connected():
+                plc.connect()
+                # print("is connected")
                 self.connected = True
+            # update values from set value table and write to plc
+            plc.close()
+            self.update_set_value()
+            self.write_to_PLC('init')
 
-                # update values from set value table and write to plc
-
-                plc.close()
-                self.update_set_value()
-                self.write_to_PLC('init')
-
-                if self.connected:
-                    self.connection_status.setStyleSheet("background-color: green")
-                    print('Connected with COM', self.com_set, 'at', self. baudrate_set)
-                else:
-                    self.connection_status.setStyleSheet(f"background-color: red")
-                    print('Disconnect with COM', self.com_set)
-            except Exception as e:
-                self.connection_status.setStyleSheet(f"background-color: red")
-                self.popup_msg(e, src_msg='connect_app')
+            if self.connected:
+                print('Connected with', msg)
+                self.connectButton.setStyleSheet("background-color : green")
+            else:
+                self.connectButton.setStyleSheet("background-color : red")
+                print('Disconnect with', msg)
         except Exception as e:
-            self.connection_status.setStyleSheet(f"background-color: red")
+            self.connectButton.setStyleSheet("background-color : red")
             self.popup_msg(e, src_msg='connect_app')
 
     # display led block

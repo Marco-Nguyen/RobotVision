@@ -1,0 +1,5 @@
+name,address,type
+left,400,coil
+right,401,coil
+backward,402,coil
+forward,403,coil

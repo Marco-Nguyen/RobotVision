@@ -4,5 +4,6 @@
     "./Communication/ModbusRTU",
     "./Distance",
     "./Human_tracking/src"
-  ]
+  ],
+  "git.ignoreLimitWarning": true
 }

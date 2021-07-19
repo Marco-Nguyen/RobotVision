@@ -1,5 +1,6 @@
 import numpy as np
 import pyrealsense2 as rs
+
 from threading import Thread
 ##
 CAMERA_WIDTH = 640
@@ -16,18 +17,19 @@ def spatial_filtering(depth_frame, magnitude=2, alpha=0.5, delta=20, holes_fill=
     spatial.set_option(rs.option.holes_fill, holes_fill)
     return spatial.process(depth_frame)
 
+
 def hole_filling(depth_frame):
     hole_filling = rs.hole_filling_filter()
     depth_frame = hole_filling.process(depth_frame)
     return depth_frame
 
-def temporal_filtering(depth_frame, alpha = 0.05, delta = 80, holes=5):
+
+def temporal_filtering(depth_frame, alpha=0.05, delta=80, holes=5):
     temp_filter = rs.temporal_filter()
     temp_filter.set_option(rs.option.filter_smooth_alpha, alpha)
     temp_filter.set_option(rs.option.filter_smooth_delta, delta)
     temp_filter.set_option(rs.option.hole_filling_filter, holes)
     return temp_filter.process(depth_frame)
-
 
 
 class Controller_noThread():
@@ -45,7 +47,6 @@ class Controller_noThread():
         self.running = True
         pass
 
-
     def get_frames(self, need_filter=False):
         '''
         Get frames from camera as numpy arrays
@@ -54,15 +55,15 @@ class Controller_noThread():
         try:
             frames = self.pipeline.wait_for_frames()
             frames = self.align.process(frames)
-   
+
             self.color_frame = frames.get_color_frame()
             self.depth_frame = frames.get_depth_frame()
-            
+
             if need_filter:
                 self.depth_frame = spatial_filtering(self.depth_frame)
                 self.depth_frame = temporal_filtering(self.depth_frame)
                 self.depth_frame = hole_filling(self.depth_frame)
-            
+
             self.depth_color_frame = rs.Colorizer().colorize(self.depth_frame)
 
             rgb = np.asanyarray(self.color_frame)
@@ -80,35 +81,34 @@ class Controller_noThread():
         else:
             try:
                 config.enable_device_from_file(f"bag_files/{self.bag_file}")
-            except:
-                print(f"Cannot enable device from: '{self.bag_file}'")
+            except Exception as e:
+                print(f"Cannot enable device from: {self.bag_file} error: {e}")
 
         self.config = config
-        
+
     def config_streamline(self, delay=5):
         # Configure video streams
         self.pipeline = rs.pipeline()
-        # Skip 5 first frames to give the Auto-Exposure time to adjust 
+        # Skip 5 first frames to give the Auto-Exposure time to adjust
         for i in range(delay):
             self.pipeline.wait_for_frames()
         # Start streaming
         self.profile = self.pipeline.start(self.config)
         self.align = rs.align(rs.stream.color)
         pass
-        
+
     def stop(self):
         self.pipeline.stop()
         self.running = False
-        
+
     def get_intrinsic(self):
         depth_intri = self.depth_frame.profile.as_video_stream_profile().intrinsics
         color_intri = self.color_frame.profile.as_video_stream_profile().intrinsics
         return depth_intri, color_intri
-    
+
     def get_depth_scale(self):
         return self.profile.get_device().first_depth_sensor().get_depth_scale()
 
-    
     def get_bg_removal(self):
         """remove background from depth image
 
@@ -119,10 +119,9 @@ class Controller_noThread():
         depth_scale = self.get_depth_scale()
         grey_color = 0
         depth_3d = np.dstack([depth] * 3)
-        clipping_distances = CLIPPING_DISTANCE/ depth_scale
+        clipping_distances = CLIPPING_DISTANCE / depth_scale
         bg_removed = np.where((depth_3d > clipping_distances) | (depth_3d <= 0), grey_color, rgb)
         return bg_removed
-
 
 
 class Controller_withThread():
